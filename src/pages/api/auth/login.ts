@@ -6,7 +6,14 @@ import jwt from 'jsonwebtoken';
 import connectDB from '../../../lib/mongodb';
 import User from '../../../models/User';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+const JWT_SECRET = process.env.JWT_SECRET;
+
+if (!JWT_SECRET) {
+  throw new Error('Please define the JWT_SECRET environment variable in your .env file');
+}
+
+// TypeScript type narrowing - at this point JWT_SECRET is guaranteed to be a string
+const jwtSecret: string = JWT_SECRET;
 
 export default async function handler(
   req: NextApiRequest,
@@ -47,7 +54,7 @@ export default async function handler(
     // Generate JWT token (no expiration - set to 100 years)
     const token = jwt.sign(
       { userId: user._id.toString() },
-      JWT_SECRET,
+      jwtSecret,
       { expiresIn: '100y' } // Effectively no expiration
     );
 
