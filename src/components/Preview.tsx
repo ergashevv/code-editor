@@ -34,25 +34,63 @@ export default function Preview({ html, css, js, isMobile = false }: PreviewProp
       ''
     );
 
-    // Combine all code
-    const fullHtml = `
-      <!DOCTYPE html>
-      <html lang="en">
-      <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <style>
-          ${css}
-        </style>
-      </head>
-      <body>
-        ${processedHtml}
-        <script>
-          ${js}
-        </script>
-      </body>
-      </html>
-    `;
+    // Check if HTML already has <html> tag
+    const hasHtmlTag = processedHtml.match(/<html[^>]*>/i);
+    
+    // Combine all code - always use white background (default)
+    let fullHtml = '';
+    
+    if (hasHtmlTag) {
+      // If HTML already has <html> tag, keep it as is (don't add dark class)
+      fullHtml = processedHtml;
+      
+      // Add CSS and JS if not already present
+      if (css && !fullHtml.includes('<style>')) {
+        const cssBlock = `<style>${css}</style>`;
+        if (fullHtml.includes('</head>')) {
+          fullHtml = fullHtml.replace('</head>', `${cssBlock}</head>`);
+        } else if (fullHtml.includes('<body')) {
+          fullHtml = fullHtml.replace('<body', `${cssBlock}<body`);
+        }
+      }
+      
+      if (js && !fullHtml.includes('<script>')) {
+        const jsBlock = `<script>${js}</script>`;
+        if (fullHtml.includes('</body>')) {
+          fullHtml = fullHtml.replace('</body>', `${jsBlock}</body>`);
+        } else {
+          fullHtml += jsBlock;
+        }
+      }
+    } else {
+      // If no <html> tag, create full HTML structure with default white background
+      fullHtml = `
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <style>
+            body {
+              background: #ffffff;
+              color: #222;
+              margin: 0;
+              padding: 0;
+            }
+          </style>
+          <style>
+            ${css}
+          </style>
+        </head>
+        <body>
+          ${processedHtml}
+          <script>
+            ${js}
+          </script>
+        </body>
+        </html>
+      `;
+    }
 
     // Use srcdoc for better compatibility
     if (iframeRef.current) {
@@ -69,7 +107,7 @@ export default function Preview({ html, css, js, isMobile = false }: PreviewProp
       <div className={`${isMobile ? 'px-2 py-1.5' : 'px-4 py-2'} bg-gray-50 border-b border-gray-200`}>
         <h3 className={`${isMobile ? 'text-xs' : 'text-sm'} font-semibold text-gray-700`}>{t('result')}</h3>
       </div>
-      <div className="flex-1 min-h-0 bg-gray-50 overflow-hidden">
+      <div className="flex-1 min-h-0 bg-white overflow-hidden">
         <iframe
           ref={iframeRef}
           className="w-full h-full border-0"

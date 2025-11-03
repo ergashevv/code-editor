@@ -4,11 +4,12 @@ import { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { motion } from 'framer-motion';
 import { useI18n } from '../hooks/useI18n';
+import { useTheme } from '../hooks/useTheme';
 import type { Monaco } from '@monaco-editor/react';
 import { htmlTags, htmlAttributes } from '../lib/autocomplete';
 import { expandEmmet, shouldExpandEmmet } from '../lib/emmet';
 import { validateHTML, ValidationError } from '../lib/htmlValidator';
-import { isSelfClosingTag, findMatchingClosingTag, findOpeningTag, findClosingTagByPosition } from '../lib/htmlHelpers';
+import { isSelfClosingTag, findMatchingClosingTag, findOpeningTag, findClosingTagByPosition, findMatchingClosingTagSimple } from '../lib/htmlHelpers';
 
 const MonacoEditor = dynamic(() => import('@monaco-editor/react'), {
   ssr: false,
@@ -21,10 +22,12 @@ interface EditorComponentProps {
   onChange: (value: string) => void;
   label: string;
   isMobile?: boolean;
+  fontSize?: number;
 }
 
-export default function Editor({ language: editorLanguage, value, onChange, label, isMobile = false }: EditorComponentProps) {
+export default function Editor({ language: editorLanguage, value, onChange, label, isMobile = false, fontSize = 14 }: EditorComponentProps) {
   const { t, language: i18nLanguage } = useI18n();
+  const { theme } = useTheme();
   const editorRef = useRef<any>(null);
   const monacoRef = useRef<Monaco | null>(null);
 
@@ -33,6 +36,47 @@ export default function Editor({ language: editorLanguage, value, onChange, labe
   const handleEditorDidMount = (editor: any, monaco: Monaco) => {
     editorRef.current = editor;
     monacoRef.current = monaco;
+
+    // Set initial theme immediately
+    const initialTheme = theme === 'dark' ? 'vs-dark' : 'vs';
+    try {
+      monaco.editor.setTheme(initialTheme);
+    } catch (error) {
+      console.error('Error setting initial Monaco theme:', error);
+    }
+
+    // Enable text selection on mobile devices
+    if (isMobile) {
+      const editorDomNode = editor.getDomNode();
+      if (editorDomNode) {
+        // Ensure text selection is enabled on the editor DOM node
+        editorDomNode.style.userSelect = 'text';
+        editorDomNode.style.webkitUserSelect = 'text';
+        editorDomNode.style.touchAction = 'auto';
+        
+        // Allow selection on all child elements
+        const setUserSelect = (element: HTMLElement) => {
+          element.style.userSelect = 'text';
+          element.style.webkitUserSelect = 'text';
+          element.style.touchAction = 'auto';
+          Array.from(element.children).forEach((child) => {
+            if (child instanceof HTMLElement) {
+              setUserSelect(child);
+            }
+          });
+        };
+        
+        // Apply to all Monaco editor elements
+        setTimeout(() => {
+          const monacoElements = editorDomNode.querySelectorAll('.monaco-editor, .monaco-editor *');
+          monacoElements.forEach((el: Element) => {
+            if (el instanceof HTMLElement) {
+              setUserSelect(el);
+            }
+          });
+        }, 100);
+      }
+    }
 
     // Validate HTML and show markers
     const updateMarkers = () => {
@@ -121,10 +165,10 @@ export default function Editor({ language: editorLanguage, value, onChange, labe
           }
         }
         
-        // Auto-rename tags when opening tag name is changed
-        // Only handle deletions and small text changes (tag name editing)
-        if (change.text.length === 0 || (change.text.length > 0 && change.text.length < 20)) {
-          // Check if we're editing inside an opening tag name (not in closing tag or attribute)
+        // Auto-rename tags when opening tag name is changed (NEW SIMPLE APPROACH)
+        // Only handle small text changes (tag name editing)
+        if (change.text.length <= 10 && change.rangeLength <= 10 && change.text !== '>') {
+          // Check if we're editing inside an opening tag name
           const openingTagMatch = textUntilPosition.match(/<([a-zA-Z][a-zA-Z0-9]*)\s*[^>]*$/);
           const isInClosingTag = textUntilPosition.match(/<\/\s*[a-zA-Z]/);
           const isInAttribute = textUntilPosition.match(/<[a-zA-Z][a-zA-Z0-9]*\s+[^>]*$/);
@@ -139,21 +183,20 @@ export default function Editor({ language: editorLanguage, value, onChange, labe
                 clearTimeout(renameTimeout);
               }
               
-              // Debounce the rename operation
+              // Simple immediate update
               renameTimeout = setTimeout(() => {
                 const fullText = model.getValue();
-                const offset = model.getOffsetAt(position);
+                const currentPosition = editor.getPosition();
+                if (!currentPosition) return;
                 
-                // Find the opening tag position by looking backwards from cursor
+                const offset = model.getOffsetAt(currentPosition);
                 const beforePosition = fullText.substring(0, offset);
                 
-                // Find the most recent opening tag before cursor (handle incomplete tags)
-                // Match tags with or without closing >
+                // Find the opening tag position - look for the most recent <tagName
+                let lastOpeningTagIndex = -1;
                 const tagRegex = /<([a-zA-Z][a-zA-Z0-9]*)\s*[^>]*/g;
                 let match;
-                let lastOpeningTagIndex = -1;
                 
-                // Find the last opening tag before cursor
                 while ((match = tagRegex.exec(beforePosition)) !== null) {
                   const tagName = match[1];
                   if (!isSelfClosingTag(tagName)) {
@@ -163,22 +206,17 @@ export default function Editor({ language: editorLanguage, value, onChange, labe
                 
                 if (lastOpeningTagIndex === -1) return;
                 
-                // Get the current tag name at this position (handle incomplete tags without >)
-                const tagAtPositionMatch = fullText.substring(lastOpeningTagIndex).match(/^<([a-zA-Z][a-zA-Z0-9]*)\s*[^>]*/);
-                if (!tagAtPositionMatch) return;
-                
-                const currentTagName = tagAtPositionMatch[1].toLowerCase();
-                
-                // Check if the tag name matches what we expect (new tag name)
-                if (currentTagName !== newTagName.toLowerCase()) {
+                // Verify the tag at this position matches newTagName
+                const tagAtPos = fullText.substring(lastOpeningTagIndex).match(/^<([a-zA-Z][a-zA-Z0-9]*)\s*[^>]*/);
+                if (!tagAtPos || tagAtPos[1].toLowerCase() !== newTagName.toLowerCase()) {
                   return;
                 }
                 
-                // Find matching closing tag by position (handles both old and new tag names)
-                const closingTag = findClosingTagByPosition(fullText, lastOpeningTagIndex, newTagName);
+                // Find matching closing tag using simple depth algorithm
+                const closingTag = findMatchingClosingTagSimple(fullText, lastOpeningTagIndex);
                 
                 if (closingTag && closingTag.found) {
-                  // Get the closing tag text
+                  // Get the closing tag to check its name
                   const closingTagText = model.getValueInRange({
                     startLineNumber: closingTag.line,
                     startColumn: closingTag.column,
@@ -186,21 +224,20 @@ export default function Editor({ language: editorLanguage, value, onChange, labe
                     endColumn: Math.min(closingTag.endColumn, model.getLineLength(closingTag.line) + 1),
                   });
                   
-                  // Extract the current closing tag name
-                  const closingTagMatch = closingTagText.match(/<\/\s*([a-zA-Z][a-zA-Z0-9]*)\s*>/);
-                  if (closingTagMatch) {
-                    const currentClosingTagName = closingTagMatch[1];
+                  // Extract closing tag name
+                  const closingMatch = closingTagText.match(/<\/\s*([a-zA-Z][a-zA-Z0-9]*)\s*>/);
+                  if (closingMatch) {
+                    const currentClosingName = closingMatch[1];
                     
-                    // Only update if names don't match
-                    if (currentClosingTagName.toLowerCase() !== newTagName.toLowerCase()) {
-                      // Update closing tag name
+                    // Update if names don't match
+                    if (currentClosingName.toLowerCase() !== newTagName.toLowerCase()) {
                       editor.executeEdits('auto-rename-tag', [
                         {
                           range: new monaco.Range(
                             closingTag.line,
                             closingTag.column + 2, // After </
                             closingTag.line,
-                            closingTag.column + 2 + currentClosingTagName.length
+                            closingTag.column + 2 + currentClosingName.length
                           ),
                           text: newTagName,
                         },
@@ -208,7 +245,7 @@ export default function Editor({ language: editorLanguage, value, onChange, labe
                     }
                   }
                 }
-              }, 200); // Debounce 200ms to allow tag completion
+              }, 100); // Simple debounce
             }
           }
         }
@@ -486,6 +523,19 @@ export default function Editor({ language: editorLanguage, value, onChange, labe
     }
   };
 
+  // Update theme in real-time
+  useEffect(() => {
+    if (monacoRef.current) {
+      const monaco = monacoRef.current;
+      const newTheme = theme === 'dark' ? 'vs-dark' : 'vs';
+      try {
+        monaco.editor.setTheme(newTheme);
+      } catch (error) {
+        console.error('Error setting Monaco theme:', error);
+      }
+    }
+  }, [theme]);
+
   // Update markers when value or language changes
   useEffect(() => {
     if (editorRef.current && monacoRef.current && editorLanguage === 'html') {
@@ -516,21 +566,21 @@ export default function Editor({ language: editorLanguage, value, onChange, labe
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="flex flex-col h-full bg-white rounded-lg border border-gray-200 overflow-hidden"
+      className="flex flex-col h-full bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden"
     >
-      <div className={`${isMobile ? 'px-2 py-1.5' : 'px-4 py-2'} bg-gray-50 border-b border-gray-200`}>
-        <h3 className={`${isMobile ? 'text-xs' : 'text-sm'} font-semibold text-gray-700`}>{label}</h3>
+      <div className={`${isMobile ? 'px-2 py-1.5' : 'px-4 py-2'} bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700`}>
+        <h3 className={`${isMobile ? 'text-xs' : 'text-sm'} font-semibold text-gray-700 dark:text-gray-200`}>{label}</h3>
       </div>
-      <div className="flex-1 min-h-0">
+      <div className="flex-1 min-h-0 bg-white dark:bg-gray-900" style={{ userSelect: 'text', WebkitUserSelect: 'text' }}>
         <MonacoEditor
           height="100%"
           language={monacoLanguage}
           value={value}
           onChange={(val) => onChange(val || '')}
-          theme="vs"
+          theme={theme === 'dark' ? 'vs-dark' : 'vs'}
           onMount={handleEditorDidMount}
           options={{
-            fontSize: isMobile ? 13 : 14,
+            fontSize: fontSize || (isMobile ? 13 : 14),
             minimap: { enabled: false },
             wordWrap: 'on',
             lineNumbers: isMobile ? 'off' : 'on',
@@ -585,6 +635,12 @@ export default function Editor({ language: editorLanguage, value, onChange, labe
             occurrencesHighlight: 'singleFile',
             // Enable selection highlighting
             selectionHighlight: true,
+            // Enable text selection on mobile
+            selectionClipboard: true,
+            // Allow selection on touch devices
+            disableLayerHinting: false,
+            // Ensure text selection works
+            emptySelectionClipboard: false,
           }}
         />
       </div>

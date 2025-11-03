@@ -1,0 +1,36 @@
+{
+  "name": "Kod Editor - Online HTML, CSS, JavaScript Editor",
+  "short_name": "Kod Editor",
+  "description": "Online HTML, CSS va JavaScript kodlarini yozish, tahrirlash va natijani darhol ko'rish uchun bepul kod editor",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "categories": ["development", "education", "productivity"],
+  "lang": "uz",
+  "dir": "ltr",
+  "scope": "/",
+  "prefer_related_applications": false
+}
+
