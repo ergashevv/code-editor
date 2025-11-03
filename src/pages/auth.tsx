@@ -9,6 +9,13 @@ import { register, login, isAuthenticated } from '../lib/api';
 
 type AuthTab = 'login' | 'register';
 
+// Disable static optimization
+export async function getServerSideProps() {
+  return {
+    props: {},
+  };
+}
+
 export default function AuthPage() {
   const router = useRouter();
   const { t } = useI18n();

@@ -21,6 +21,13 @@ import { isAuthenticated } from '../lib/api';
 
 type TabType = 'html' | 'css' | 'javascript';
 
+// Disable static optimization
+export async function getServerSideProps() {
+  return {
+    props: {},
+  };
+}
+
 export default function Home() {
   const router = useRouter();
   const { t, language } = useI18n();
@@ -46,8 +53,10 @@ export default function Home() {
 
   // Check authentication on mount
   useEffect(() => {
-    if (!isAuthenticated()) {
-      router.push('/auth');
+    if (router.isReady) {
+      if (!isAuthenticated()) {
+        router.push('/auth');
+      }
     }
   }, [router]);
 
