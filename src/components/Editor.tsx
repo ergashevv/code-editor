@@ -8,6 +8,7 @@ import type { Monaco } from '@monaco-editor/react';
 import { htmlTags, htmlAttributes } from '../lib/autocomplete';
 import { expandEmmet, shouldExpandEmmet } from '../lib/emmet';
 import { validateHTML, ValidationError } from '../lib/htmlValidator';
+import { isSelfClosingTag, findMatchingClosingTag, findOpeningTag, findClosingTagByPosition } from '../lib/htmlHelpers';
 
 const MonacoEditor = dynamic(() => import('@monaco-editor/react'), {
   ssr: false,
@@ -66,6 +67,191 @@ export default function Editor({ language: editorLanguage, value, onChange, labe
     });
 
     if (editorLanguage === 'html') {
+      let renameTimeout: NodeJS.Timeout | null = null;
+      
+      // Combined handler for auto-close and auto-rename
+      editor.onDidChangeModelContent((e: any) => {
+        if (!e.changes || e.changes.length === 0) return;
+        
+        const change = e.changes[0];
+        const model = editor.getModel();
+        const position = change.range.getStartPosition();
+        const textUntilPosition = model.getValueInRange({
+          startLineNumber: 1,
+          startColumn: 1,
+          endLineNumber: position.lineNumber,
+          endColumn: position.column,
+        });
+        
+        // Auto-close tags when typing >
+        if (change.text === '>' && change.rangeLength === 0) {
+          // Check if we just closed an opening tag (not a closing tag)
+          const tagMatch = textUntilPosition.match(/<([a-zA-Z][a-zA-Z0-9]*)\s*[^/>]*>$/);
+          if (tagMatch && !textUntilPosition.match(/<\/\s*[^>]*>$/)) {
+            const tagName = tagMatch[1];
+            if (!isSelfClosingTag(tagName)) {
+              // Check if there's already a closing tag immediately after
+              const textAfterPosition = model.getValueInRange({
+                startLineNumber: position.lineNumber,
+                startColumn: position.column + 1,
+                endLineNumber: position.lineNumber,
+                endColumn: position.column + tagName.length + 4,
+              });
+              
+              const closingTagPattern = new RegExp(`^<\\/\\s*${tagName}\\s*>`, 'i');
+              if (!textAfterPosition.match(closingTagPattern)) {
+                // Insert closing tag
+                setTimeout(() => {
+                  editor.executeEdits('auto-close-tag', [
+                    {
+                      range: new monaco.Range(
+                        position.lineNumber,
+                        position.column + 1,
+                        position.lineNumber,
+                        position.column + 1
+                      ),
+                      text: `</${tagName}>`,
+                    },
+                  ]);
+                  // Move cursor back inside the tag
+                  editor.setPosition(position);
+                }, 0);
+              }
+            }
+          }
+        }
+        
+        // Auto-rename tags when opening tag name is changed
+        // Only handle deletions and small text changes (tag name editing)
+        if (change.text.length === 0 || (change.text.length > 0 && change.text.length < 20)) {
+          // Check if we're editing inside an opening tag name (not in closing tag or attribute)
+          const openingTagMatch = textUntilPosition.match(/<([a-zA-Z][a-zA-Z0-9]*)\s*[^>]*$/);
+          const isInClosingTag = textUntilPosition.match(/<\/\s*[a-zA-Z]/);
+          const isInAttribute = textUntilPosition.match(/<[a-zA-Z][a-zA-Z0-9]*\s+[^>]*$/);
+          
+          if (openingTagMatch && !isInClosingTag && !isInAttribute) {
+            const newTagName = openingTagMatch[1];
+            
+            // Only proceed if tag name is valid and not empty
+            if (newTagName.length > 0 && !isSelfClosingTag(newTagName)) {
+              // Clear previous timeout
+              if (renameTimeout) {
+                clearTimeout(renameTimeout);
+              }
+              
+              // Debounce the rename operation
+              renameTimeout = setTimeout(() => {
+                const fullText = model.getValue();
+                const offset = model.getOffsetAt(position);
+                
+                // Find the opening tag position by looking backwards from cursor
+                const beforePosition = fullText.substring(0, offset);
+                
+                // Find the most recent opening tag before cursor (handle incomplete tags)
+                // Match tags with or without closing >
+                const tagRegex = /<([a-zA-Z][a-zA-Z0-9]*)\s*[^>]*/g;
+                let match;
+                let lastOpeningTagIndex = -1;
+                
+                // Find the last opening tag before cursor
+                while ((match = tagRegex.exec(beforePosition)) !== null) {
+                  const tagName = match[1];
+                  if (!isSelfClosingTag(tagName)) {
+                    lastOpeningTagIndex = match.index;
+                  }
+                }
+                
+                if (lastOpeningTagIndex === -1) return;
+                
+                // Get the current tag name at this position (handle incomplete tags without >)
+                const tagAtPositionMatch = fullText.substring(lastOpeningTagIndex).match(/^<([a-zA-Z][a-zA-Z0-9]*)\s*[^>]*/);
+                if (!tagAtPositionMatch) return;
+                
+                const currentTagName = tagAtPositionMatch[1].toLowerCase();
+                
+                // Check if the tag name matches what we expect (new tag name)
+                if (currentTagName !== newTagName.toLowerCase()) {
+                  return;
+                }
+                
+                // Find matching closing tag by position (handles both old and new tag names)
+                const closingTag = findClosingTagByPosition(fullText, lastOpeningTagIndex, newTagName);
+                
+                if (closingTag && closingTag.found) {
+                  // Get the closing tag text
+                  const closingTagText = model.getValueInRange({
+                    startLineNumber: closingTag.line,
+                    startColumn: closingTag.column,
+                    endLineNumber: closingTag.line,
+                    endColumn: Math.min(closingTag.endColumn, model.getLineLength(closingTag.line) + 1),
+                  });
+                  
+                  // Extract the current closing tag name
+                  const closingTagMatch = closingTagText.match(/<\/\s*([a-zA-Z][a-zA-Z0-9]*)\s*>/);
+                  if (closingTagMatch) {
+                    const currentClosingTagName = closingTagMatch[1];
+                    
+                    // Only update if names don't match
+                    if (currentClosingTagName.toLowerCase() !== newTagName.toLowerCase()) {
+                      // Update closing tag name
+                      editor.executeEdits('auto-rename-tag', [
+                        {
+                          range: new monaco.Range(
+                            closingTag.line,
+                            closingTag.column + 2, // After </
+                            closingTag.line,
+                            closingTag.column + 2 + currentClosingTagName.length
+                          ),
+                          text: newTagName,
+                        },
+                      ]);
+                    }
+                  }
+                }
+              }, 200); // Debounce 200ms to allow tag completion
+            }
+          }
+        }
+      });
+
+      // Highlight matching tags when cursor is inside a tag
+      editor.onDidChangeCursorPosition(() => {
+        const model = editor.getModel();
+        const position = editor.getPosition();
+        if (!position) return;
+        
+        const textUntilPosition = model.getValueInRange({
+          startLineNumber: 1,
+          startColumn: 1,
+          endLineNumber: position.lineNumber,
+          endColumn: position.column,
+        });
+        
+        // Check if cursor is inside a tag
+        const insideOpeningTag = textUntilPosition.match(/<([a-zA-Z][a-zA-Z0-9]*)\s*[^>]*$/);
+        const insideClosingTag = textUntilPosition.match(/<\/\s*([a-zA-Z][a-zA-Z0-9]*)\s*$/);
+        
+        if (insideOpeningTag || insideClosingTag) {
+          const tagName = insideOpeningTag ? insideOpeningTag[1] : insideClosingTag![1];
+          const fullText = model.getValue();
+          const offset = model.getOffsetAt(position);
+          
+          // Find matching tag
+          if (insideOpeningTag) {
+            const closingTag = findMatchingClosingTag(fullText, offset, tagName);
+            if (closingTag && closingTag.found) {
+              // Monaco will automatically highlight matching brackets
+              // We can add custom decorations here if needed
+            }
+          } else {
+            const openingTag = findOpeningTag(fullText, offset);
+            if (openingTag && openingTag.found && openingTag.tagName.toLowerCase() === tagName.toLowerCase()) {
+              // Matching tag found
+            }
+          }
+        }
+      });
+
       // Helper function to expand Emmet and position cursor
       const expandEmmetAbbreviation = (abbreviation: string, range: any) => {
         const expanded = expandEmmet(abbreviation);
@@ -387,12 +573,18 @@ export default function Editor({ language: editorLanguage, value, onChange, labe
             // Enable selection shortcuts
             selectOnLineNumbers: true,
             glyphMargin: true,
+            // Enable bracket matching and tag highlighting
+            matchBrackets: 'always',
             // Enable find/replace shortcuts
             find: {
               addExtraSpaceOnTop: false,
               autoFindInSelection: 'never',
               seedSearchStringFromSelection: 'always',
             },
+            // Enable word highlighting
+            occurrencesHighlight: 'singleFile',
+            // Enable selection highlighting
+            selectionHighlight: true,
           }}
         />
       </div>
