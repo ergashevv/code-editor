@@ -1,0 +1,13 @@
+{
+  "unclosedTag": "Незакрытый тег: {tag}",
+  "mismatchedTag": "Несоответствующий тег: {tag} должен быть закрыт",
+  "invalidAttribute": "Неверный атрибут: {attr}",
+  "missingClosingTag": "Отсутствует закрывающий тег: {tag}",
+  "duplicateId": "Дублирующийся ID: {id}",
+  "invalidHtml": "Неверная HTML структура",
+  "missingRequiredAttribute": "Отсутствует обязательный атрибут: {attr}",
+  "invalidNesting": "Неверная вложенность тегов",
+  "unknownTag": "Неизвестный тег: {tag}",
+  "invalidDoctype": "Неверный DOCTYPE"
+}
+

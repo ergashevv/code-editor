@@ -1,0 +1,13 @@
+{
+  "unclosedTag": "Unclosed tag: {tag}",
+  "mismatchedTag": "Mismatched tag: {tag} should be closed",
+  "invalidAttribute": "Invalid attribute: {attr}",
+  "missingClosingTag": "Missing closing tag: {tag}",
+  "duplicateId": "Duplicate ID: {id}",
+  "invalidHtml": "Invalid HTML structure",
+  "missingRequiredAttribute": "Missing required attribute: {attr}",
+  "invalidNesting": "Invalid tag nesting",
+  "unknownTag": "Unknown tag: {tag}",
+  "invalidDoctype": "Invalid DOCTYPE"
+}
+

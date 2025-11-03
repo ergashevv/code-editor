@@ -1,0 +1,12 @@
+{
+  "run": "Run",
+  "clear": "Clear",
+  "html": "HTML",
+  "css": "CSS",
+  "javascript": "JavaScript",
+  "result": "Result",
+  "language": "Language",
+  "typeCodeBelow": "Type code below",
+  "appName": "Code Editor"
+}
+

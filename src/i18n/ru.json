@@ -1,0 +1,12 @@
+{
+  "run": "Запустить",
+  "clear": "Очистить",
+  "html": "HTML",
+  "css": "CSS",
+  "javascript": "JavaScript",
+  "result": "Результат",
+  "language": "Язык",
+  "typeCodeBelow": "Напишите свой код",
+  "appName": "Редактор Кода"
+}
+

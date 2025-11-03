@@ -1,0 +1,13 @@
+{
+  "unclosedTag": "Yopilmagan tag: {tag}",
+  "mismatchedTag": "Tag mos kelmayapti: {tag} yopilishi kerak",
+  "invalidAttribute": "Noto'g'ri atribut: {attr}",
+  "missingClosingTag": "Yopiluvchi tag topilmadi: {tag}",
+  "duplicateId": "Bir xil ID ikki marta ishlatilgan: {id}",
+  "invalidHtml": "Noto'g'ri HTML struktura",
+  "missingRequiredAttribute": "Majburiy atribut topilmadi: {attr}",
+  "invalidNesting": "Noto'g'ri tag ichiga joylashtirish",
+  "unknownTag": "Noma'lum tag: {tag}",
+  "invalidDoctype": "Noto'g'ri DOCTYPE"
+}
+
