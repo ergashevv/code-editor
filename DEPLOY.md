@@ -7,7 +7,9 @@
 - Backend (API routes `/pages/api/`)
 - Bir xil serverda ishlaydi
 
-**Qo'shimcha ma'lumot:** `RENDER_DEPLOY.md` faylida to'liq yo'riqnoma mavjud.
+**Qo'shimcha ma'lumotlar:**
+- **Vercel:** `VERCEL_DEPLOY.md` - Next.js uchun eng yaxshi platforma ✅
+- **Render.com:** `RENDER_DEPLOY.md` - Alternative platform
 
 ## 🔧 Render.com sozlamalari
 
