@@ -246,14 +246,14 @@ export default function Home() {
         {/* Canonical */}
         <link rel="canonical" href="https://yourdomain.com/home" />
       </Head>
-      <div className="min-h-screen flex flex-col overflow-hidden bg-transparent">
+      <div className="h-screen flex flex-col overflow-hidden bg-transparent">
         <Navbar 
           onClear={handleClear}
           onSettings={() => setIsSettingsOpen(true)}
           isMobile={isMobile}
         />
       
-        <div className="flex-1 flex flex-col lg:flex-row overflow-hidden relative bg-inherit">
+        <div className="flex-1 flex flex-col lg:flex-row overflow-hidden relative bg-inherit min-h-0">
           {/* Editor Section */}
           <div 
             className={`editor-container flex flex-col bg-white dark:bg-gray-900 ${

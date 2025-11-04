@@ -10,6 +10,9 @@ export default function Document() {
         <meta name="theme-color" content="#2563eb" />
         <meta name="color-scheme" content="light dark" />
         
+        {/* Google Search Console Verification */}
+        <meta name="google-site-verification" content="yid7tXNMQqDTjVHTUVhc99F-a4HFUEsURW_NwBpjCQc" />
+        
         {/* Primary SEO Tags */}
         <meta name="title" content="Kod Editor - Online HTML, CSS, JavaScript Editor" />
         <meta 
