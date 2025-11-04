@@ -2,14 +2,8 @@
 
 import mongoose from 'mongoose';
 
-const MONGODB_URI = process.env.MONGODB_URI;
-
-if (!MONGODB_URI) {
-  throw new Error('Please define the MONGODB_URI environment variable in your .env file');
-}
-
-// TypeScript type narrowing - at this point MONGODB_URI is guaranteed to be a string
-const connectionString: string = MONGODB_URI;
+// Don't check MONGODB_URI at module load time - check at runtime
+// This prevents build errors if env vars are not set during build
 
 interface MongooseCache {
   conn: typeof mongoose | null;
@@ -27,6 +21,15 @@ if (!global.mongoose) {
 }
 
 async function connectDB(): Promise<typeof mongoose> {
+  // Check MONGODB_URI at runtime
+  const MONGODB_URI = process.env.MONGODB_URI;
+  if (!MONGODB_URI) {
+    throw new Error('Please define the MONGODB_URI environment variable');
+  }
+
+  // TypeScript type narrowing
+  const connectionString: string = MONGODB_URI;
+
   if (cached.conn) {
     return cached.conn;
   }

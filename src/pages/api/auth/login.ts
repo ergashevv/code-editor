@@ -6,14 +6,8 @@ import jwt from 'jsonwebtoken';
 import connectDB from '../../../lib/mongodb';
 import User from '../../../models/User';
 
-const JWT_SECRET = process.env.JWT_SECRET;
-
-if (!JWT_SECRET) {
-  throw new Error('Please define the JWT_SECRET environment variable in your .env file');
-}
-
-// TypeScript type narrowing - at this point JWT_SECRET is guaranteed to be a string
-const jwtSecret: string = JWT_SECRET;
+// JWT_SECRET will be checked at runtime, not at module load time
+// This prevents build errors if env vars are not set during build
 
 export default async function handler(
   req: NextApiRequest,
@@ -59,6 +53,13 @@ export default async function handler(
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       return res.status(401).json({ error: 'Invalid username or password' });
+    }
+
+    // Check JWT_SECRET at runtime
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) {
+      console.error('JWT_SECRET is not defined');
+      return res.status(500).json({ error: 'Server configuration error' });
     }
 
     // Generate JWT token (no expiration - set to 100 years)

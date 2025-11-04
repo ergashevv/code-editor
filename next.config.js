@@ -1,9 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  // API routes configuration
-  async rewrites() {
-    return [];
+  // Ensure API routes are included in build
+  experimental: {
+    // Not needed for Next.js 14, but keeping for compatibility
   },
   webpack: (config) => {
     config.resolve.alias = {
