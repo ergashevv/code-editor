@@ -1,9 +1,9 @@
 // API route: POST /api/admin/lessons - Create lesson (ADMIN only)
 
 import type { NextApiRequest, NextApiResponse } from 'next';
-import connectDB from '../../../lib/mongodb';
-import { requireAdmin, AuthRequest } from '../../../lib/authMiddleware';
-import Lesson from '../../../models/Lesson';
+import connectDB from '../../../../lib/mongodb';
+import { requireAdmin, AuthRequest } from '../../../../lib/authMiddleware';
+import Lesson from '../../../../models/Lesson';
 
 async function handler(req: AuthRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
