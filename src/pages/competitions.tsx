@@ -15,8 +15,15 @@ export default function CompetitionsPage() {
   const { t } = useI18n();
   const [loading, setLoading] = useState(true);
   const [competitions, setCompetitions] = useState<any[]>([]);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+    
     const checkAuth = async () => {
       if (router.isReady) {
         if (!isAuthenticated()) {
@@ -29,7 +36,7 @@ export default function CompetitionsPage() {
     };
 
     checkAuth();
-  }, [router]);
+  }, [router, mounted]);
 
   const fetchCompetitions = async () => {
     setLoading(true);
@@ -57,7 +64,7 @@ export default function CompetitionsPage() {
   };
 
   const handleBack = () => {
-    if (window.history.length > 1) {
+    if (typeof window !== 'undefined' && window.history.length > 1) {
       router.back();
     } else {
       router.push('/home');
@@ -65,6 +72,7 @@ export default function CompetitionsPage() {
   };
 
   const getLocalizedTitle = (comp: any) => {
+    if (typeof window === 'undefined') return comp.title || comp.title_en;
     const lang = localStorage.getItem('language') || 'en';
     if (lang === 'uz' && comp.title_uz) return comp.title_uz;
     if (lang === 'ru' && comp.title_ru) return comp.title_ru;
@@ -72,13 +80,14 @@ export default function CompetitionsPage() {
   };
 
   const getLocalizedDescription = (comp: any) => {
+    if (typeof window === 'undefined') return comp.description || comp.description_en;
     const lang = localStorage.getItem('language') || 'en';
     if (lang === 'uz' && comp.description_uz) return comp.description_uz;
     if (lang === 'ru' && comp.description_ru) return comp.description_ru;
     return comp.description || comp.description_en;
   };
 
-  if (loading) {
+  if (!mounted || loading) {
     return (
       <LoadingSpinner 
         fullScreen 

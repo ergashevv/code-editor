@@ -23,8 +23,15 @@ export default function CompetitionDetailPage() {
   const [css, setCss] = useState('');
   const [checking, setChecking] = useState(false);
   const [checkResults, setCheckResults] = useState<any>(null);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+    
     const checkAuth = async () => {
       if (router.isReady) {
         if (!isAuthenticated()) {
@@ -39,7 +46,7 @@ export default function CompetitionDetailPage() {
     };
 
     checkAuth();
-  }, [router, id]);
+  }, [router, id, mounted]);
 
   const fetchCompetition = async () => {
     setLoading(true);
@@ -184,7 +191,7 @@ export default function CompetitionDetailPage() {
   };
 
   const handleBack = () => {
-    if (window.history.length > 1) {
+    if (typeof window !== 'undefined' && window.history.length > 1) {
       router.back();
     } else {
       router.push('/competitions');
@@ -192,6 +199,7 @@ export default function CompetitionDetailPage() {
   };
 
   const getLocalizedTitle = (item: any) => {
+    if (typeof window === 'undefined') return item.title || item.title_en;
     const lang = localStorage.getItem('language') || 'en';
     if (lang === 'uz' && item.title_uz) return item.title_uz;
     if (lang === 'ru' && item.title_ru) return item.title_ru;
@@ -199,13 +207,14 @@ export default function CompetitionDetailPage() {
   };
 
   const getLocalizedDescription = (item: any) => {
+    if (typeof window === 'undefined') return item.description || item.description_en;
     const lang = localStorage.getItem('language') || 'en';
     if (lang === 'uz' && item.description_uz) return item.description_uz;
     if (lang === 'ru' && item.description_ru) return item.description_ru;
     return item.description || item.description_en;
   };
 
-  if (loading) {
+  if (!mounted || loading) {
     return (
       <LoadingSpinner 
         fullScreen 
