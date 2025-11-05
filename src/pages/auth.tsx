@@ -177,7 +177,7 @@ export default function AuthPage() {
         <meta name="description" content={`${t('appName')} - ${activeTab === 'login' ? 'Login' : 'Register'} to start coding online with live preview.`} />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <meta name="keywords" content="kod editor login, kod editor register, online code editor authentication" />
-        <link rel="canonical" href={`https://yourdomain.com/auth`} />
+        <link rel="canonical" href={`https://texnikum.xyz/auth`} />
       </Head>
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
         <motion.div

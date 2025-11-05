@@ -77,6 +77,7 @@ export default async function handler(
         id: user._id,
         username: user.username,
         phone: user.phone,
+        role: user.role || 'USER',
       },
     });
   } catch (error: any) {

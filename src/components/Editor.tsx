@@ -45,6 +45,15 @@ export default function Editor({ language: editorLanguage, value, onChange, labe
       console.error('Error setting initial Monaco theme:', error);
     }
 
+    // Force layout update after mount
+    setTimeout(() => {
+      try {
+        editor.layout();
+      } catch (error) {
+        console.error('Error laying out editor:', error);
+      }
+    }, 100);
+
     // Enable text selection on mobile devices
     if (isMobile) {
       const editorDomNode = editor.getDomNode();
@@ -562,25 +571,104 @@ export default function Editor({ language: editorLanguage, value, onChange, labe
     }
   }, [value, i18nLanguage, editorLanguage]);
 
+  // Handle resize and visibility changes to fix editor not showing after refresh
+  useEffect(() => {
+    const handleResize = () => {
+      if (editorRef.current) {
+        // Multiple layout calls with delays to ensure proper rendering
+        setTimeout(() => {
+          try {
+            editorRef.current.layout();
+          } catch (error) {
+            console.error('Error resizing editor:', error);
+          }
+        }, 50);
+        setTimeout(() => {
+          try {
+            editorRef.current.layout();
+          } catch (error) {
+            console.error('Error resizing editor (second attempt):', error);
+          }
+        }, 200);
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && editorRef.current) {
+        setTimeout(() => {
+          try {
+            editorRef.current.layout();
+          } catch (error) {
+            console.error('Error laying out editor after visibility change:', error);
+          }
+        }, 100);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('orientationchange', handleResize);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // Force layout after component mounts - multiple attempts for mobile
+    const timers = [
+      setTimeout(() => {
+        if (editorRef.current) {
+          try {
+            editorRef.current.layout();
+          } catch (error) {
+            console.error('Error laying out editor on mount (1):', error);
+          }
+        }
+      }, 100),
+      setTimeout(() => {
+        if (editorRef.current) {
+          try {
+            editorRef.current.layout();
+          } catch (error) {
+            console.error('Error laying out editor on mount (2):', error);
+          }
+        }
+      }, 300),
+      setTimeout(() => {
+        if (editorRef.current) {
+          try {
+            editorRef.current.layout();
+          } catch (error) {
+            console.error('Error laying out editor on mount (3):', error);
+          }
+        }
+      }, 500),
+    ];
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('orientationchange', handleResize);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      timers.forEach(timer => clearTimeout(timer));
+    };
+  }, []);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="flex flex-col h-full bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden"
+      className="flex flex-col h-full w-full bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden"
+      style={{ minHeight: '300px', height: '100%', flex: '1 1 auto', display: 'flex', flexDirection: 'column' }}
     >
-      <div className={`${isMobile ? 'px-2 py-1.5' : 'px-4 py-2'} bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700`}>
-        <h3 className={`${isMobile ? 'text-xs' : 'text-sm'} font-semibold text-gray-700 dark:text-gray-200`}>{label}</h3>
+      <div className={`${isMobile ? 'px-1.5 py-0.5' : 'px-3 py-1.5'} bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shrink-0 flex-shrink-0`}>
+        <h3 className={`${isMobile ? 'text-[10px]' : 'text-xs'} font-medium text-gray-700 dark:text-gray-200`}>{label}</h3>
       </div>
-      <div className="flex-1 min-h-0 bg-white dark:bg-gray-900" style={{ userSelect: 'text', WebkitUserSelect: 'text' }}>
-        <MonacoEditor
-          height="100%"
+      <div className="flex-1 min-h-0 w-full bg-white dark:bg-gray-900 overflow-hidden" style={{ userSelect: 'text', WebkitUserSelect: 'text', minHeight: '250px', height: '100%', flex: '1 1 auto', position: 'relative', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ flex: '1 1 auto', minHeight: 0, height: '100%', width: '100%', position: 'relative' }}>
+          <MonacoEditor
+            height="100%"
           language={monacoLanguage}
           value={value}
           onChange={(val) => onChange(val || '')}
           theme={theme === 'dark' ? 'vs-dark' : 'vs'}
           onMount={handleEditorDidMount}
           options={{
-            fontSize: fontSize || (isMobile ? 13 : 14),
+            fontSize: fontSize || (isMobile ? 12 : 13),
             minimap: { enabled: false },
             wordWrap: 'on',
             lineNumbers: isMobile ? 'off' : 'on',
@@ -643,6 +731,7 @@ export default function Editor({ language: editorLanguage, value, onChange, labe
             emptySelectionClipboard: false,
           }}
         />
+        </div>
       </div>
     </motion.div>
   );

@@ -2,6 +2,11 @@ User-agent: *
 Allow: /
 Disallow: /api/
 Disallow: /_next/
+Disallow: /auth
 
-Sitemap: https://yourdomain.com/sitemap.xml
+Sitemap: https://texnikum.xyz/sitemap.xml
+
+# Crawl-delay for aggressive bots
+User-agent: *
+Crawl-delay: 1
 

@@ -8,27 +8,28 @@ interface LanguageToggleProps {
 }
 
 export default function LanguageToggle({ isMobile = false }: LanguageToggleProps) {
-  const { language, setLanguage, t } = useI18n();
+  const { language, setLanguage } = useI18n();
 
-  const languages: { code: Language; label: string }[] = [
-    { code: 'uz', label: 'UZ' },
-    { code: 'ru', label: 'RU' },
-    { code: 'en', label: 'EN' },
+  const languages: { code: Language; label: string; flag: string }[] = [
+    { code: 'uz', label: 'UZ', flag: '🇺🇿' },
+    { code: 'ru', label: 'RU', flag: '🇷🇺' },
+    { code: 'en', label: 'EN', flag: '🇬🇧' },
   ];
 
   return (
-    <div className={`flex items-center ${isMobile ? 'gap-1' : 'gap-2'} bg-gray-100 dark:bg-gray-800 rounded-lg ${isMobile ? 'p-0.5' : 'p-1'}`}>
+    <div className={`inline-flex items-center ${isMobile ? 'gap-0.5' : 'gap-1'} bg-gray-200 dark:bg-gray-700 rounded-lg ${isMobile ? 'p-0.5' : 'p-1'}`}>
       {languages.map((lang) => (
         <button
           key={lang.code}
           onClick={() => setLanguage(lang.code)}
-          className={`${isMobile ? 'px-2 py-1 text-xs' : 'px-3 py-1.5 text-sm'} rounded-md font-medium transition-all touch-manipulation ${
+          className={`${isMobile ? 'px-2.5 py-1.5 text-xs' : 'px-3 py-1.5 text-sm'} rounded-md font-medium transition-all duration-150 touch-manipulation flex items-center gap-1.5 ${
             language === lang.code
-              ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
-              : 'text-gray-600 dark:text-gray-400 active:text-gray-900 dark:active:text-white'
+              ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+              : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
           }`}
         >
-          {lang.label}
+          <span className="text-base leading-none">{lang.flag}</span>
+          <span>{lang.label}</span>
         </button>
       ))}
     </div>

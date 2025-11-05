@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
-import { isAuthenticated } from '../lib/api';
+import { isAuthenticated, ensureAuthenticated } from '../lib/api';
 
 // Disable static optimization
 export async function getServerSideProps() {
@@ -16,15 +16,26 @@ export default function Index() {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
-    // Check authentication and redirect only after mount
-    if (router.isReady) {
-      if (isAuthenticated()) {
-        router.push('/home');
-      } else {
-        router.push('/auth');
+    const checkAuth = async () => {
+      setMounted(true);
+      // Check authentication and redirect only after mount
+      if (router.isReady) {
+        if (!isAuthenticated()) {
+          router.push('/auth');
+          return;
+        }
+
+        // Verify and refresh token if needed
+        const isValid = await ensureAuthenticated();
+        if (isValid) {
+          router.push('/home'); // Dashboard page
+        } else {
+          router.push('/auth');
+        }
       }
-    }
+    };
+
+    checkAuth();
   }, [router]);
 
   if (!mounted || !router.isReady) {

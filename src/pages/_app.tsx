@@ -2,10 +2,11 @@ import { useState, useEffect } from 'react';
 import type { AppProps } from 'next/app';
 import Script from 'next/script';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useI18n } from '../hooks/useI18n';
+import { I18nProvider, useI18n } from '../contexts/I18nContext';
+import GoogleAnalytics from '../components/GoogleAnalytics';
 import '../styles/globals.css';
 
-export default function App({ Component, pageProps }: AppProps) {
+function AppContent({ Component, pageProps }: AppProps) {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const { t } = useI18n();
 
@@ -40,6 +41,7 @@ export default function App({ Component, pageProps }: AppProps) {
 
   return (
     <>
+      <GoogleAnalytics />
       <Script
         id="theme-init"
         strategy="beforeInteractive"
@@ -105,5 +107,13 @@ export default function App({ Component, pageProps }: AppProps) {
           </motion.div>
       )}
     </>
+  );
+}
+
+export default function App(props: AppProps) {
+  return (
+    <I18nProvider>
+      <AppContent {...props} />
+    </I18nProvider>
   );
 }

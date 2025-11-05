@@ -2,6 +2,82 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Mobile-first: Touch-friendly interactions */
+@layer base {
+  button, a {
+    @apply touch-manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  /* Minimum touch target size for mobile (44x44px) */
+  @media (max-width: 768px) {
+    button, a[role="button"] {
+      min-height: 44px;
+      min-width: 44px;
+    }
+  }
+}
+
+/* Hide scrollbar for horizontal scroll */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari and Opera */
+}
+
+/* React DatePicker Dark Mode Styles */
+.react-datepicker {
+  @apply bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600;
+}
+
+.react-datepicker__header {
+  @apply bg-blue-600 dark:bg-blue-700 border-gray-300 dark:border-gray-600;
+}
+
+.react-datepicker__current-month,
+.react-datepicker-time__header,
+.react-datepicker-year-header {
+  @apply text-white;
+}
+
+.react-datepicker__day-name,
+.react-datepicker__day,
+.react-datepicker__time-name {
+  @apply text-gray-700 dark:text-gray-300;
+}
+
+.react-datepicker__day:hover {
+  @apply bg-blue-100 dark:bg-blue-900;
+}
+
+.react-datepicker__day--selected,
+.react-datepicker__day--keyboard-selected {
+  @apply bg-blue-600 dark:bg-blue-700 text-white;
+}
+
+.react-datepicker__day--today {
+  @apply font-bold bg-blue-100 dark:bg-blue-900;
+}
+
+.react-datepicker__time-container .react-datepicker__time .react-datepicker__time-box ul.react-datepicker__time-list li.react-datepicker__time-list-item:hover {
+  @apply bg-blue-600 dark:bg-blue-700;
+}
+
+.react-datepicker__time-container .react-datepicker__time .react-datepicker__time-box ul.react-datepicker__time-list li.react-datepicker__time-list-item--selected {
+  @apply bg-blue-600 dark:bg-blue-700 text-white;
+}
+
+.react-datepicker__time-container .react-datepicker__time {
+  @apply border-gray-300 dark:border-gray-600;
+}
+
+.react-datepicker__navigation-icon::before {
+  @apply border-gray-700 dark:border-gray-300;
+}
+
 * {
   box-sizing: border-box;
   padding: 0;
@@ -182,5 +258,50 @@ html.dark ::-webkit-scrollbar-thumb {
 
 html.dark ::-webkit-scrollbar-thumb:hover {
   background: #6b7280;
+}
+
+/* VS Code-like tag styling for lesson content */
+.prose code {
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 0.9em;
+  background-color: rgba(0, 0, 0, 0.05);
+  padding: 0.2em 0.4em;
+  border-radius: 3px;
+  color: #d73a49;
+}
+
+html.dark .prose code {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #f97583;
+}
+
+.prose pre {
+  background-color: #1e1e1e;
+  padding: 1em;
+  border-radius: 6px;
+  overflow-x: auto;
+}
+
+.prose pre code {
+  background-color: transparent;
+  padding: 0;
+  color: #d4d4d4;
+}
+
+/* Tag highlighting in code blocks */
+.prose pre code .tag {
+  color: #569cd6;
+}
+
+.prose pre code .attr {
+  color: #9cdcfe;
+}
+
+.prose pre code .string {
+  color: #ce9178;
+}
+
+.prose pre code .comment {
+  color: #6a9955;
 }
 
