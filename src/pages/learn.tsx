@@ -3,11 +3,15 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
+import { motion } from 'framer-motion';
 import { useI18n } from '../hooks/useI18n';
 import { isAuthenticated, ensureAuthenticated, getToken, getUser } from '../lib/api';
 import { getCachedLessons, setCachedLessons } from '../lib/lessonsCache';
 import { getLocalizedLessonContent } from '../lib/lessonContent';
 import Navbar from '../components/Navbar';
+import LoadingSpinner from '../components/LoadingSpinner';
+import LazyLoadWrapper from '../components/LazyLoadWrapper';
+import { SkeletonCard } from '../components/SkeletonLoader';
 
 interface Lesson {
   _id: string;
@@ -167,9 +171,10 @@ export default function LearnPage() {
           </div>
 
           {loading ? (
-            <div className="text-center py-20">
-              <div className="text-6xl mb-4">📚</div>
-              <div className="text-xl sm:text-2xl text-gray-600 dark:text-gray-400">{t('loading')}</div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <SkeletonCard key={i} />
+              ))}
             </div>
           ) : lessons.length === 0 ? (
             <div className="text-center py-20">
@@ -190,12 +195,18 @@ export default function LearnPage() {
                     </h2>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">
-                    {unlockedLessons.map((lesson) => (
-                      <div
+                    {unlockedLessons.map((lesson, index) => (
+                      <LazyLoadWrapper
                         key={lesson._id}
-                        className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl p-6 sm:p-8 active:shadow-2xl transition-all cursor-pointer border-4 border-green-400 dark:border-green-500 active:border-green-500 dark:active:border-green-400 active:scale-95 touch-manipulation"
-                        onClick={() => router.push(`/learn/${lesson.slug}`)}
+                        delay={index * 0.1}
+                        animationType="slideUp"
                       >
+                        <motion.div
+                          className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl p-6 sm:p-8 active:shadow-2xl transition-all cursor-pointer border-4 border-green-400 dark:border-green-500 active:border-green-500 dark:active:border-green-400 touch-manipulation"
+                          onClick={() => router.push(`/learn/${lesson.slug}`)}
+                          whileHover={{ scale: 1.02, y: -4, boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' }}
+                          whileTap={{ scale: 0.98 }}
+                        >
                         <div className="mb-4">
                           <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-3">
                             {lesson.title}
@@ -218,10 +229,15 @@ export default function LearnPage() {
                           )}
                         </div>
 
-                        <button className="w-full py-5 sm:py-5 bg-gradient-to-r from-green-500 to-emerald-500 active:from-green-600 active:to-emerald-600 text-white rounded-xl font-bold text-lg sm:text-xl transition-all shadow-lg active:shadow-xl active:scale-95 touch-manipulation min-h-[56px]">
+                        <motion.button 
+                          className="w-full py-5 sm:py-5 bg-gradient-to-r from-green-500 to-emerald-500 active:from-green-600 active:to-emerald-600 text-white rounded-xl font-bold text-lg sm:text-xl transition-all shadow-lg touch-manipulation min-h-[56px]"
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                        >
                           {t('startLesson')} →
-                        </button>
-                      </div>
+                        </motion.button>
+                      </motion.div>
+                      </LazyLoadWrapper>
                     ))}
                   </div>
                 </div>
@@ -239,13 +255,18 @@ export default function LearnPage() {
                     </h2>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">
-                    {lockedLessons.map((lesson) => {
+                    {lockedLessons.map((lesson, index) => {
                       const timeUntil = getTimeUntilUnlock(lesson.unlockAt);
                       return (
-                        <div
+                        <LazyLoadWrapper
                           key={lesson._id}
-                          className="bg-gray-100 dark:bg-gray-800 rounded-3xl shadow-md p-6 sm:p-8 opacity-70 cursor-not-allowed border-4 border-gray-300 dark:border-gray-600"
+                          delay={index * 0.1}
+                          animationType="fade"
                         >
+                          <motion.div
+                            className="bg-gray-100 dark:bg-gray-800 rounded-3xl shadow-md p-6 sm:p-8 opacity-70 cursor-not-allowed border-4 border-gray-300 dark:border-gray-600"
+                            whileHover={{ opacity: 0.85 }}
+                          >
                           <div className="flex items-start justify-between mb-4">
                             <h3 className="text-xl sm:text-2xl font-bold text-gray-600 dark:text-gray-400 flex-1">
                               {lesson.title}
@@ -264,7 +285,8 @@ export default function LearnPage() {
                               {t('unlockAt')}: {timeUntil}
                             </div>
                           )}
-                        </div>
+                        </motion.div>
+                        </LazyLoadWrapper>
                       );
                     })}
                   </div>

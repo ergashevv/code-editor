@@ -1,8 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
+import { motion } from 'framer-motion';
 import { useI18n } from '../hooks/useI18n';
 import { isAuthenticated, getToken } from '../lib/api';
 import { showToast } from '../components/Toast';
+import LoadingSpinner from '../components/LoadingSpinner';
+import LazyLoadWrapper from '../components/LazyLoadWrapper';
+import { SkeletonCard } from '../components/SkeletonLoader';
 
 export default function CompetitionsPage() {
   const router = useRouter();
@@ -74,12 +78,11 @@ export default function CompetitionsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-4xl mb-4">⏳</div>
-          <p className="text-gray-600 dark:text-gray-400">{t('loading') || 'Loading...'}</p>
-        </div>
-      </div>
+      <LoadingSpinner 
+        fullScreen 
+        size="lg" 
+        text={t('loading') || 'Loading...'} 
+      />
     );
   }
 
@@ -112,11 +115,17 @@ export default function CompetitionsPage() {
               {t('availableCompetitions') || 'Available Competitions'}
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-              {unlockedCompetitions.map((comp) => (
-                <div
+              {unlockedCompetitions.map((comp, index) => (
+                <LazyLoadWrapper
                   key={comp._id}
-                  className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border-2 border-green-200 dark:border-green-800 hover:shadow-xl transition-all"
+                  delay={index * 0.1}
+                  animationType="slideUp"
                 >
+                  <motion.div
+                    className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border-2 border-green-200 dark:border-green-800 hover:shadow-xl transition-all"
+                    whileHover={{ scale: 1.02, y: -4 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
                   <div className="flex items-center gap-2 mb-3">
                     <span className="text-2xl">🏆</span>
                     <h3 className="text-xl font-bold text-gray-900 dark:text-white">
@@ -130,14 +139,17 @@ export default function CompetitionsPage() {
                     <span className="px-3 py-1 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-lg text-xs font-bold">
                       ✅ {t('active') || 'Active'}
                     </span>
-                    <button
+                    <motion.button
                       onClick={() => router.push(`/competitions/${comp._id}`)}
                       className="px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-lg hover:from-blue-600 hover:to-indigo-600 font-medium transition-all shadow-sm"
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
                     >
                       {t('participate') || 'Participate'}
-                    </button>
+                    </motion.button>
                   </div>
-                </div>
+                </motion.div>
+                </LazyLoadWrapper>
               ))}
             </div>
           </div>
@@ -150,7 +162,7 @@ export default function CompetitionsPage() {
               {t('upcomingCompetitions') || 'Upcoming Competitions'}
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-              {lockedCompetitions.map((comp) => {
+              {lockedCompetitions.map((comp, index) => {
                 const unlockDate = new Date(comp.unlockAt);
                 const now = new Date();
                 const timeUntilUnlock = unlockDate.getTime() - now.getTime();
@@ -159,10 +171,15 @@ export default function CompetitionsPage() {
                 const minutesUntil = Math.floor((timeUntilUnlock % (1000 * 60 * 60)) / (1000 * 60));
 
                 return (
-                  <div
+                  <LazyLoadWrapper
                     key={comp._id}
-                    className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border-2 border-yellow-200 dark:border-yellow-800 opacity-75"
+                    delay={index * 0.1}
+                    animationType="fade"
                   >
+                    <motion.div
+                      className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border-2 border-yellow-200 dark:border-yellow-800 opacity-75"
+                      whileHover={{ opacity: 1, scale: 1.02 }}
+                    >
                     <div className="flex items-center gap-2 mb-3">
                       <span className="text-2xl">🔒</span>
                       <h3 className="text-xl font-bold text-gray-900 dark:text-white">
@@ -189,7 +206,8 @@ export default function CompetitionsPage() {
                         </p>
                       )}
                     </div>
-                  </div>
+                  </motion.div>
+                  </LazyLoadWrapper>
                 );
               })}
             </div>

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
+import { motion } from 'framer-motion';
 import { useI18n } from '../../hooks/useI18n';
 import { isAuthenticated, getToken } from '../../lib/api';
 import { showToast } from '../../components/Toast';
@@ -7,6 +8,7 @@ import Editor from '../../components/Editor';
 import Preview from '../../components/Preview';
 import { evaluateHTMLCheck, evaluateCSSCheck } from '../../lib/grader';
 import { formatNumber } from '../../lib/formatNumber';
+import LoadingSpinner from '../../components/LoadingSpinner';
 
 export default function CompetitionDetailPage() {
   const router = useRouter();
@@ -102,11 +104,11 @@ export default function CompetitionDetailPage() {
         if (check.type === 'html') {
           const result = evaluateHTMLCheck(check.rule, html, css);
           passed = result.passed;
-          message = result.message;
+          message = result.message || '';
         } else if (check.type === 'css') {
           const result = evaluateCSSCheck(check.rule, css);
           passed = result.passed;
-          message = result.message;
+          message = result.message || '';
         }
 
         results.push({
@@ -203,12 +205,11 @@ export default function CompetitionDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-4xl mb-4">⏳</div>
-          <p className="text-gray-600 dark:text-gray-400">{t('loading') || 'Loading...'}</p>
-        </div>
-      </div>
+      <LoadingSpinner 
+        fullScreen 
+        size="lg" 
+        text={t('loading') || 'Loading...'} 
+      />
     );
   }
 
@@ -324,7 +325,7 @@ export default function CompetitionDetailPage() {
                           language="html"
                           value={html}
                           onChange={setHtml}
-                          height="100%"
+                          label="HTML"
                         />
                       </div>
                       <div className="h-48">
@@ -332,7 +333,7 @@ export default function CompetitionDetailPage() {
                           language="css"
                           value={css}
                           onChange={setCss}
-                          height="100%"
+                          label="CSS"
                         />
                       </div>
                     </div>

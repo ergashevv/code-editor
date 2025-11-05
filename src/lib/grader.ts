@@ -128,11 +128,11 @@ export function evaluateHtmlCss(
     
     try {
       if (check.type === 'html') {
-        const result = evaluateHTMLCheck($, check.rule, originalHtml); // Use original HTML for DOCTYPE checks
+        const result = evaluateHTMLCheckInternal($, check.rule, originalHtml); // Use original HTML for DOCTYPE checks
         passed = result.passed;
         message = result.message || check.hint;
       } else if (check.type === 'css') {
-        const result = evaluateCSSCheck(cssRules, check.rule);
+        const result = evaluateCSSCheckInternal(cssRules, check.rule);
         passed = result.passed;
         message = result.message || check.hint;
       }
@@ -160,7 +160,16 @@ export function evaluateHtmlCss(
  * - text:selector=value - element text must match
  * - count:selector=n - must have n elements
  */
-function evaluateHTMLCheck($: cheerio.CheerioAPI, rule: string, html: string = ''): { passed: boolean; message?: string } {
+export function evaluateHTMLCheck(rule: string, html: string, css: string = ''): { passed: boolean; message: string } {
+  const $ = cheerio.load(html);
+  const result = evaluateHTMLCheckInternal($, rule, html);
+  return {
+    passed: result.passed,
+    message: result.message || 'Check failed',
+  };
+}
+
+function evaluateHTMLCheckInternal($: cheerio.CheerioAPI, rule: string, html: string = ''): { passed: boolean; message?: string } {
   const parts = rule.split(':');
   if (parts.length < 2) {
     return { passed: false, message: 'Invalid rule format' };
@@ -378,7 +387,7 @@ function evaluateHTMLCheck($: cheerio.CheerioAPI, rule: string, html: string = '
 /**
  * Parse CSS into a map of selectors to properties
  */
-function parseCSSRules(css: string): Map<string, Map<string, string>> {
+export function parseCSSRules(css: string): Map<string, Map<string, string>> {
   const rules = new Map<string, Map<string, string>>();
   
   if (!css || !css.trim()) {
@@ -458,7 +467,19 @@ function parseCSSRules(css: string): Map<string, Map<string, string>> {
  * - class:.classname property=value - class must have property
  * - exists:selector - selector must exist in CSS
  */
-function evaluateCSSCheck(
+export function evaluateCSSCheck(
+  rule: string,
+  css: string
+): { passed: boolean; message: string } {
+  const cssRules = parseCSSRules(css);
+  const result = evaluateCSSCheckInternal(cssRules, rule);
+  return {
+    passed: result.passed,
+    message: result.message || 'Check failed',
+  };
+}
+
+function evaluateCSSCheckInternal(
   cssRules: Map<string, Map<string, string>>,
   rule: string
 ): { passed: boolean; message?: string } {
@@ -536,7 +557,7 @@ function evaluateCSSCheck(
     
     case 'class': {
       // Similar to rule but for class selectors
-      return evaluateCSSCheck(cssRules, `rule:${rest}`);
+      return evaluateCSSCheckInternal(cssRules, `rule:${rest}`);
     }
     
     case 'exists': {

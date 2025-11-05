@@ -42,7 +42,7 @@ export default async function handler(
     }
 
     // Get competition
-    const competition = await Competition.findById(id).lean();
+    const competition = await Competition.findById(id).lean() as any;
 
     if (!competition) {
       return res.status(404).json({ error: 'Competition not found' });
