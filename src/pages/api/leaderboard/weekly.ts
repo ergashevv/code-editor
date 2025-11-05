@@ -68,11 +68,11 @@ export default async function handler(
 
     const users = await User.find({ _id: { $in: userIds } })
       .select('username level xp _id')
-      .lean();
+      .lean() as any[];
 
     // Create items with weekly XP
     const items = users
-      .map(user => ({
+      .map((user: any) => ({
         userId: user._id.toString(),
         username: user.username,
         level: user.level || 1,

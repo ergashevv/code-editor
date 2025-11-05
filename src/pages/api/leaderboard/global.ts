@@ -28,10 +28,10 @@ export default async function handler(
     const users = await User.find({})
       .select('username level xp _id')
       .sort({ xp: -1, level: -1 })
-      .lean();
+      .lean() as any[];
 
     // Add rank
-    const items = users.map((user, index) => ({
+    const items = users.map((user: any, index) => ({
       userId: user._id.toString(),
       username: user.username,
       level: user.level || 1,
