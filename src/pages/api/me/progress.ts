@@ -20,7 +20,7 @@ async function handler(req: AuthRequest, res: NextApiResponse) {
       .lean();
 
     // Get user details
-    const user = await User.findById(req.userId).select('xp level').lean();
+    const user = await User.findById(req.userId).select('xp level').lean() as any;
 
     return res.status(200).json({
       success: true,
