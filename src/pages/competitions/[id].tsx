@@ -12,6 +12,13 @@ import { evaluateHTMLCheck, evaluateCSSCheck } from '../../lib/grader';
 import { formatNumber } from '../../lib/formatNumber';
 import LoadingSpinner from '../../components/LoadingSpinner';
 
+// Disable static optimization
+export async function getServerSideProps() {
+  return {
+    props: {},
+  };
+}
+
 export default function CompetitionDetailPage() {
   const router = useRouter();
   const { id } = router.query;

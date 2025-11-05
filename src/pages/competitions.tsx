@@ -10,6 +10,13 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import LazyLoadWrapper from '../components/LazyLoadWrapper';
 import { SkeletonCard } from '../components/SkeletonLoader';
 
+// Disable static optimization
+export async function getServerSideProps() {
+  return {
+    props: {},
+  };
+}
+
 export default function CompetitionsPage() {
   const router = useRouter();
   const { t } = useI18n();
