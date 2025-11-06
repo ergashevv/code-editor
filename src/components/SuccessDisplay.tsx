@@ -38,16 +38,17 @@ export default function SuccessDisplay({
         checkmarkRef.current.style.strokeDasharray = `${pathLength}`;
         checkmarkRef.current.style.strokeDashoffset = `${pathLength}`;
 
+        const pathObj = { value: pathLength };
         animate(
-          { value: pathLength },
+          pathObj,
           {
             value: 0,
             duration: 600,
             delay: 200,
             easing: 'easeOutExpo',
-            onRender: (anim) => {
+            onRender: () => {
               if (checkmarkRef.current) {
-                checkmarkRef.current.style.strokeDashoffset = `${anim.value}`;
+                checkmarkRef.current.style.strokeDashoffset = `${pathObj.value}`;
               }
             }
           }
