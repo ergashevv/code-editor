@@ -42,6 +42,18 @@ export function evaluateHtmlCss(
     .replace(/<htl\b/gi, '<html') // Fix <htl> typo
     .replace(/<\/htl>/gi, '</html>'); // Fix </htl> typo
   
+  // Fix common tag closing errors like <h1>/h1 or <div>/div
+  // Pattern: <tag>/tag should become <tag></tag>
+  fixedHtml = fixedHtml.replace(/<(\w+)([^>]*)>\/\1>/gi, '<$1$2></$1>');
+  
+  // Fix self-closing tags that should be closed properly
+  // Pattern: <tag/> should become <tag></tag> for non-self-closing tags
+  const nonSelfClosingTags = ['div', 'span', 'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'a', 'button', 'form', 'label', 'ul', 'ol', 'li', 'table', 'tr', 'td', 'th', 'thead', 'tbody', 'header', 'footer', 'nav', 'section', 'article', 'aside', 'strong', 'em', 'code', 'pre', 'blockquote'];
+  nonSelfClosingTags.forEach(tag => {
+    const regex = new RegExp(`<${tag}([^>]*?)\\s*/>`, 'gi');
+    fixedHtml = fixedHtml.replace(regex, `<${tag}$1></${tag}>`);
+  });
+  
   // Normalize HTML - ensure it can be parsed correctly by cheerio
   // Cheerio needs a valid HTML structure to parse correctly
   let normalizedHtml = fixedHtml;
@@ -189,34 +201,40 @@ function evaluateHTMLCheckInternal($: cheerio.CheerioAPI, rule: string, html: st
         };
       }
       
-      // Special handling for semantic equivalents
-      // b and strong are equivalent for bold
-      // i and em are equivalent for italic
+      // Check if selector is an ID selector (#id) or class selector (.class)
+      const isIdSelector = rest.startsWith('#');
+      const isClassSelector = rest.startsWith('.');
+      const isTagSelector = !isIdSelector && !isClassSelector;
+      
       let selector = rest;
       let equivalentSelectors = [rest];
       
-      if (rest === 'b') {
-        equivalentSelectors = ['b', 'strong'];
-      } else if (rest === 'strong') {
-        equivalentSelectors = ['strong', 'b'];
-      } else if (rest === 'i') {
-        equivalentSelectors = ['i', 'em'];
-      } else if (rest === 'em') {
-        equivalentSelectors = ['em', 'i'];
+      // Special handling for semantic equivalents (only for tag selectors)
+      if (isTagSelector) {
+        if (rest === 'b') {
+          equivalentSelectors = ['b', 'strong'];
+        } else if (rest === 'strong') {
+          equivalentSelectors = ['strong', 'b'];
+        } else if (rest === 'i') {
+          equivalentSelectors = ['i', 'em'];
+        } else if (rest === 'em') {
+          equivalentSelectors = ['em', 'i'];
+        }
       }
       
-      // Try to find elements with the selector
+      // Try to find elements with the selector using cheerio
+      // Cheerio supports CSS selectors including #id and .class
       let elements = $(equivalentSelectors.join(','));
       let exists = elements.length > 0;
       
-      // If not found, try searching in body only
-      if (!exists && rest !== 'body' && rest !== 'html' && rest !== 'head') {
+      // If not found and it's a tag selector, try searching in body only
+      if (!exists && isTagSelector && rest !== 'body' && rest !== 'html' && rest !== 'head') {
         elements = $('body').find(equivalentSelectors.join(','));
         exists = elements.length > 0;
       }
       
-      // If still not found, try case-insensitive search for tag names
-      if (!exists && rest !== 'body' && rest !== 'html' && rest !== 'head') {
+      // If still not found and it's a tag selector, try case-insensitive search for tag names
+      if (!exists && isTagSelector && rest !== 'body' && rest !== 'html' && rest !== 'head') {
         const lowerSelectors = equivalentSelectors.map(s => s.toLowerCase());
         $('*').each((i, el) => {
           const tagName = (el as any).tagName?.toLowerCase();
@@ -227,9 +245,46 @@ function evaluateHTMLCheckInternal($: cheerio.CheerioAPI, rule: string, html: st
         });
       }
       
+      // For ID and class selectors, also try searching in the original HTML string
+      // This helps catch cases where cheerio might not parse correctly
+      if (!exists && (isIdSelector || isClassSelector)) {
+        // Extract ID or class name
+        const selectorName = isIdSelector ? rest.substring(1) : rest.substring(1);
+        const attributeName = isIdSelector ? 'id' : 'class';
+        
+        // Search in original HTML for the attribute
+        const regex = isIdSelector 
+          ? new RegExp(`id\\s*=\\s*["']${selectorName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}["']`, 'i')
+          : new RegExp(`class\\s*=\\s*["'][^"']*\\b${selectorName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b[^"']*["']`, 'i');
+        
+        if (regex.test(html)) {
+          exists = true;
+        }
+      }
+      
+      // Generate appropriate message
+      let message = '';
+      if (exists) {
+        if (isIdSelector) {
+          message = `Found #${rest.substring(1)}`;
+        } else if (isClassSelector) {
+          message = `Found .${rest.substring(1)}`;
+        } else {
+          message = `Found ${rest}${equivalentSelectors.length > 1 ? ` or ${equivalentSelectors.find(s => s !== rest)}` : ''}`;
+        }
+      } else {
+        if (isIdSelector) {
+          message = `Missing #${rest.substring(1)}`;
+        } else if (isClassSelector) {
+          message = `Missing .${rest.substring(1)}`;
+        } else {
+          message = `Missing ${rest}${equivalentSelectors.length > 1 ? ` or ${equivalentSelectors.find(s => s !== rest)}` : ''}`;
+        }
+      }
+      
       return {
         passed: exists,
-        message: exists ? `Found ${rest}${equivalentSelectors.length > 1 ? ` or ${equivalentSelectors.find(s => s !== rest)}` : ''}` : `Missing ${rest}${equivalentSelectors.length > 1 ? ` or ${equivalentSelectors.find(s => s !== rest)}` : ''}`,
+        message,
       };
     }
     

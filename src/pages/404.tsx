@@ -1,95 +1,17 @@
-import { useEffect, useRef } from 'react';
 import Head from 'next/head';
 
 export default function NotFoundPage() {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const numberRef = useRef<HTMLDivElement>(null);
-  const textRef = useRef<HTMLDivElement>(null);
-  const buttonRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    
-    // Import animate dynamically only on client side
-    import('animejs').then(({ animate }) => {
-
-      if (containerRef.current) {
-        // Container fade in
-        animate(
-          containerRef.current,
-          {
-            opacity: [0, 1],
-            duration: 500,
-            easing: 'easeOutExpo',
-          }
-        );
-      }
-
-      // 404 number animation
-      if (numberRef.current) {
-        animate(
-          numberRef.current,
-          {
-            scale: [0, 1.2, 1],
-            rotateZ: [0, 360],
-            opacity: [0, 1],
-            duration: 1000,
-            easing: 'easeOutElastic(1, .6)',
-          }
-        );
-      }
-
-      // Text animation
-      if (textRef.current) {
-        setTimeout(() => {
-          animate(
-            textRef.current!,
-            {
-              opacity: [0, 1],
-              translateY: [20, 0],
-              duration: 600,
-              easing: 'easeOutExpo',
-            }
-          );
-        }, 300);
-      }
-
-      // Button animation
-      if (buttonRef.current) {
-        setTimeout(() => {
-          animate(
-            buttonRef.current!,
-            {
-              opacity: [0, 1],
-              translateY: [20, 0],
-              duration: 600,
-              easing: 'easeOutExpo',
-            }
-          );
-        }, 600);
-      }
-    });
-  }, []);
-
   return (
     <>
       <Head>
         <title>404 - Page Not Found</title>
       </Head>
-      <div
-        ref={containerRef}
-        className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4"
-        style={{ opacity: 0 }}
-      >
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
         <div className="text-center max-w-md">
-          <div
-            ref={numberRef}
-            className="text-9xl font-black text-gray-900 dark:text-white mb-4"
-            style={{ opacity: 0 }}
-          >
+          <div className="text-9xl font-black text-gray-900 dark:text-white mb-4">
             404
           </div>
-          <div ref={textRef} className="mb-8" style={{ opacity: 0 }}>
+          <div className="mb-8">
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
               Page Not Found
             </h1>
@@ -97,21 +19,82 @@ export default function NotFoundPage() {
               The page you&apos;re looking for doesn&apos;t exist or has been moved.
             </p>
           </div>
-          <div ref={buttonRef} style={{ opacity: 0 }}>
-            <button
-              className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
-              onClick={() => {
-                if (typeof window !== 'undefined') {
-                  window.location.href = '/home';
-                }
-              }}
+          <div>
+            <a
+              href="/home"
+              className="inline-block px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
             >
               Go to Home
-            </button>
+            </a>
           </div>
         </div>
       </div>
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `
+            (function() {
+              if (typeof window === 'undefined') return;
+              
+              // Load animejs dynamically
+              const script = document.createElement('script');
+              script.src = 'https://cdn.jsdelivr.net/npm/animejs@3.2.1/lib/anime.min.js';
+              script.onload = function() {
+                if (typeof anime === 'undefined') return;
+                
+                const container = document.querySelector('.min-h-screen');
+                const number = container?.querySelector('.text-9xl');
+                const text = container?.querySelector('.mb-8');
+                const button = container?.querySelector('a');
+                
+                if (container) {
+                  anime({
+                    targets: container,
+                    opacity: [0, 1],
+                    duration: 500,
+                    easing: 'easeOutExpo',
+                  });
+                }
+                
+                if (number) {
+                  anime({
+                    targets: number,
+                    scale: [0, 1.2, 1],
+                    rotateZ: [0, 360],
+                    opacity: [0, 1],
+                    duration: 1000,
+                    easing: 'easeOutElastic(1, .6)',
+                  });
+                }
+                
+                if (text) {
+                  setTimeout(function() {
+                    anime({
+                      targets: text,
+                      opacity: [0, 1],
+                      translateY: [20, 0],
+                      duration: 600,
+                      easing: 'easeOutExpo',
+                    });
+                  }, 300);
+                }
+                
+                if (button) {
+                  setTimeout(function() {
+                    anime({
+                      targets: button,
+                      opacity: [0, 1],
+                      translateY: [20, 0],
+                      duration: 600,
+                      easing: 'easeOutExpo',
+                    });
+                  }, 600);
+                }
+              };
+              document.head.appendChild(script);
+            })();
+          `,
+        }}
+      />
     </>
   );
 }
-
