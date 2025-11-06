@@ -1,6 +1,8 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
+import { useEffect, useRef } from 'react';
+import { animate } from 'animejs';
 import { useI18n } from '../hooks/useI18n';
 import { downloadHTML, downloadCSS, downloadJS, downloadZIP } from '../lib/exportUtils';
 import { generatePDF, printCode } from '../lib/pdfUtils';
@@ -16,6 +18,9 @@ interface ExportModalProps {
 
 export default function ExportModal({ isOpen, onClose, html, css, js, isMobile = false }: ExportModalProps) {
   const { t } = useI18n();
+  const modalRef = useRef<HTMLDivElement>(null);
+  const backdropRef = useRef<HTMLDivElement>(null);
+  const optionsRef = useRef<HTMLDivElement>(null);
 
   const exportOptions = [
     { 
@@ -78,11 +83,62 @@ export default function ExportModal({ isOpen, onClose, html, css, js, isMobile =
     },
   ];
 
+  // Anime.js animations for modal
+  useEffect(() => {
+    if (isOpen) {
+      // Backdrop fade in
+      if (backdropRef.current) {
+        animate(
+          backdropRef.current,
+          {
+            opacity: [0, 1],
+            duration: 300,
+            easing: 'easeOutExpo',
+          }
+        );
+      }
+
+      // Modal entrance with bounce
+      if (modalRef.current) {
+        animate(
+          modalRef.current,
+          {
+            opacity: [0, 1],
+            scale: [0.8, 1],
+            translateY: [30, 0],
+            rotateZ: [-5, 0],
+            duration: 600,
+            easing: 'easeOutElastic(1, .6)',
+          }
+        );
+      }
+
+      // Options stagger animation
+      setTimeout(() => {
+        if (optionsRef.current) {
+          const options = optionsRef.current.querySelectorAll('button');
+          animate(
+            options,
+            {
+              opacity: [0, 1],
+              translateX: [-30, 0],
+              scale: [0.9, 1],
+              duration: 400,
+              delay: (el: any, i: number) => i * 80,
+              easing: 'easeOutExpo',
+            }
+          );
+        }
+      }, 200);
+    }
+  }, [isOpen]);
+
   return (
     <AnimatePresence>
       {isOpen && (
         <>
           <motion.div
+            ref={backdropRef}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -90,9 +146,10 @@ export default function ExportModal({ isOpen, onClose, html, css, js, isMobile =
             onClick={onClose}
           />
           <motion.div
+            ref={modalRef}
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
+            exit={{ opacity: 0 }}
             className={`fixed ${isMobile ? 'inset-4' : 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2'} bg-white dark:bg-gray-800 rounded-xl shadow-xl z-50 ${isMobile ? 'w-auto max-w-full' : 'w-96'} max-h-[90vh] overflow-y-auto border border-gray-100 dark:border-gray-700`}
           >
             <div className="p-6">
@@ -110,7 +167,7 @@ export default function ExportModal({ isOpen, onClose, html, css, js, isMobile =
                 </button>
               </div>
 
-              <div className="space-y-2">
+              <div ref={optionsRef} className="space-y-2">
                 {exportOptions.map((option) => (
                   <button
                     key={option.id}

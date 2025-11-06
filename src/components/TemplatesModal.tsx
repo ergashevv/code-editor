@@ -1,6 +1,8 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
+import { useEffect, useRef } from 'react';
+import { animate } from 'animejs';
 import { useI18n } from '../hooks/useI18n';
 import { templates, Template } from '../lib/templates';
 
@@ -13,12 +15,66 @@ interface TemplatesModalProps {
 
 export default function TemplatesModal({ isOpen, onClose, onSelectTemplate, isMobile = false }: TemplatesModalProps) {
   const { t } = useI18n();
+  const modalRef = useRef<HTMLDivElement>(null);
+  const backdropRef = useRef<HTMLDivElement>(null);
+  const templatesRef = useRef<HTMLDivElement>(null);
+
+  // Anime.js animations for templates modal
+  useEffect(() => {
+    if (isOpen) {
+      // Backdrop fade in
+      if (backdropRef.current) {
+        animate(
+          backdropRef.current,
+          {
+            opacity: [0, 1],
+            duration: 300,
+            easing: 'easeOutExpo',
+          }
+        );
+      }
+
+      // Modal entrance
+      if (modalRef.current) {
+        animate(
+          modalRef.current,
+          {
+            opacity: [0, 1],
+            scale: [0.9, 1],
+            translateY: [30, 0],
+            rotateZ: [-2, 0],
+            duration: 600,
+            easing: 'easeOutElastic(1, .6)',
+          }
+        );
+      }
+
+      // Templates stagger animation
+      setTimeout(() => {
+        if (templatesRef.current) {
+          const templateCards = templatesRef.current.querySelectorAll('button');
+          animate(
+            templateCards,
+            {
+              opacity: [0, 1],
+              translateY: [30, 0],
+              scale: [0.95, 1],
+              duration: 500,
+              delay: (el: any, i: number) => i * 100,
+              easing: 'easeOutExpo',
+            }
+          );
+        }
+      }, 300);
+    }
+  }, [isOpen]);
 
   return (
     <AnimatePresence>
       {isOpen && (
         <>
           <motion.div
+            ref={backdropRef}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -26,9 +82,10 @@ export default function TemplatesModal({ isOpen, onClose, onSelectTemplate, isMo
             onClick={onClose}
           />
           <motion.div
+            ref={modalRef}
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
+            exit={{ opacity: 0 }}
             className={`fixed ${isMobile ? 'inset-2' : 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2'} bg-white dark:bg-gray-800 rounded-lg shadow-xl z-50 ${isMobile ? 'w-auto' : 'w-[600px]'} max-h-[90vh] overflow-y-auto`}
           >
             <div className="p-6">
@@ -46,7 +103,7 @@ export default function TemplatesModal({ isOpen, onClose, onSelectTemplate, isMo
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 gap-3">
+              <div ref={templatesRef} className="grid grid-cols-1 gap-3">
                 {templates.map((template) => (
                   <button
                     key={template.id}

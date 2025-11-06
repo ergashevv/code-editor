@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { motion } from 'framer-motion';
+import { animate } from 'animejs';
 import { useI18n } from '../hooks/useI18n';
 import { isAuthenticated, getToken } from '../lib/api';
 import { showToast } from '../components/Toast';
@@ -23,6 +24,7 @@ export default function CompetitionsPage() {
   const [loading, setLoading] = useState(true);
   const [competitions, setCompetitions] = useState<any[]>([]);
   const [mounted, setMounted] = useState(false);
+  const headerRef = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -94,6 +96,73 @@ export default function CompetitionsPage() {
     return comp.description || comp.description_en;
   };
 
+  // Anime.js animations for competitions page
+  useEffect(() => {
+    if (loading || !mounted) return;
+
+    // Header animation
+    if (headerRef.current) {
+      animate(
+        headerRef.current,
+        {
+          opacity: [0, 1],
+          translateY: [20, 0],
+          scale: [0.95, 1],
+          duration: 600,
+          easing: 'easeOutExpo',
+        }
+      );
+    }
+
+    // Competition cards hover animations
+    setTimeout(() => {
+      const compCards = document.querySelectorAll('.competition-card-animate');
+      compCards.forEach((card) => {
+        card.addEventListener('mouseenter', () => {
+          animate(
+            card,
+            {
+              scale: [1, 1.05],
+              translateY: [0, -8],
+              rotateZ: [0, 1],
+              duration: 400,
+              easing: 'easeOutExpo',
+            }
+          );
+        });
+        
+        card.addEventListener('mouseleave', () => {
+          animate(
+            card,
+            {
+              scale: [1.05, 1],
+              translateY: [-8, 0],
+              rotateZ: [1, 0],
+              duration: 400,
+              easing: 'easeOutExpo',
+            }
+          );
+        });
+      });
+    }, 500);
+
+    // Section headers animation
+    setTimeout(() => {
+      const sectionHeaders = document.querySelectorAll('.section-header-animate');
+      animate(
+        sectionHeaders,
+        {
+          opacity: [0, 1],
+          translateX: [-30, 0],
+          scale: [0.9, 1],
+          duration: 600,
+          delay: (el: any, i: number) => i * 200,
+          easing: 'easeOutExpo',
+        }
+      );
+    }, 200);
+  }, [loading, mounted, competitions]);
+
   if (!mounted || loading) {
     return (
       <LoadingSpinner 
@@ -118,7 +187,7 @@ export default function CompetitionsPage() {
           >
             ← {t('back') || 'Back'}
           </button>
-          <h1 className="text-3xl sm:text-4xl font-black text-gray-900 dark:text-white mb-2">
+          <h1 ref={headerRef} className="text-3xl sm:text-4xl font-black text-gray-900 dark:text-white mb-2">
             🏆 {t('competitions') || 'Competitions'}
           </h1>
           <p className="text-gray-600 dark:text-gray-400">
@@ -129,7 +198,7 @@ export default function CompetitionsPage() {
         {/* Unlocked Competitions */}
         {unlockedCompetitions.length > 0 && (
           <div className="mb-8">
-            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-4">
+            <h2 className="section-header-animate text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-4">
               {t('availableCompetitions') || 'Available Competitions'}
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
@@ -140,7 +209,7 @@ export default function CompetitionsPage() {
                   animationType="slideUp"
                 >
                   <motion.div
-                    className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border-2 border-green-200 dark:border-green-800 hover:shadow-xl transition-all"
+                    className="competition-card-animate bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border-2 border-green-200 dark:border-green-800 hover:shadow-xl transition-all"
                     whileHover={{ scale: 1.02, y: -4 }}
                     whileTap={{ scale: 0.98 }}
                   >
@@ -176,7 +245,7 @@ export default function CompetitionsPage() {
         {/* Locked Competitions */}
         {lockedCompetitions.length > 0 && (
           <div>
-            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-4">
+            <h2 className="section-header-animate text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-4">
               {t('upcomingCompetitions') || 'Upcoming Competitions'}
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">

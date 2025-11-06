@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { animate } from 'animejs';
 import { useI18n } from '../hooks/useI18n';
 import { readImageAsBase64 } from '../lib/fileUtils';
 
@@ -15,6 +16,9 @@ interface ImageUploadModalProps {
 export default function ImageUploadModal({ isOpen, onClose, onInsert, isMobile = false }: ImageUploadModalProps) {
   const { t } = useI18n();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
+  const backdropRef = useRef<HTMLDivElement>(null);
+  const uploadAreaRef = useRef<HTMLButtonElement>(null);
   const [base64Code, setBase64Code] = useState<string>('');
   const [isUploading, setIsUploading] = useState(false);
 
@@ -58,11 +62,84 @@ export default function ImageUploadModal({ isOpen, onClose, onInsert, isMobile =
     }
   };
 
+  // Anime.js animations for image upload modal
+  useEffect(() => {
+    if (isOpen) {
+      // Backdrop fade in
+      if (backdropRef.current) {
+        animate(
+          backdropRef.current,
+          {
+            opacity: [0, 1],
+            duration: 300,
+            easing: 'easeOutExpo',
+          }
+        );
+      }
+
+      // Modal entrance
+      if (modalRef.current) {
+        animate(
+          modalRef.current,
+          {
+            opacity: [0, 1],
+            scale: [0.9, 1],
+            translateY: [30, 0],
+            rotateZ: [-2, 0],
+            duration: 500,
+            easing: 'easeOutElastic(1, .6)',
+          }
+        );
+      }
+
+      // Upload button pulse animation
+      if (uploadAreaRef.current) {
+        const pulse = { value: 1 };
+        animate(
+          pulse,
+          {
+            value: [1, 1.05, 1],
+            duration: 2000,
+            easing: 'easeInOutQuad',
+            loop: true,
+            onRender: () => {
+              if (uploadAreaRef.current) {
+                uploadAreaRef.current.style.transform = `scale(${pulse.value})`;
+              }
+            }
+          }
+        );
+      }
+    }
+  }, [isOpen]);
+
+  // Upload animation
+  useEffect(() => {
+    if (isUploading && uploadAreaRef.current) {
+      const spin = { value: 0 };
+      animate(
+        spin,
+        {
+          value: 360,
+          duration: 1000,
+          easing: 'linear',
+          loop: true,
+          onRender: () => {
+            if (uploadAreaRef.current) {
+              uploadAreaRef.current.style.transform = `rotate(${spin.value}deg)`;
+            }
+          }
+        }
+      );
+    }
+  }, [isUploading]);
+
   return (
     <AnimatePresence>
       {isOpen && (
         <>
           <motion.div
+            ref={backdropRef}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -70,9 +147,10 @@ export default function ImageUploadModal({ isOpen, onClose, onInsert, isMobile =
             onClick={onClose}
           />
           <motion.div
+            ref={modalRef}
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
+            exit={{ opacity: 0 }}
             className={`fixed ${isMobile ? 'inset-4' : 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2'} bg-white dark:bg-gray-800 rounded-lg shadow-xl z-50 ${isMobile ? 'w-auto max-w-full' : 'w-96'} max-h-[80vh] overflow-y-auto`}
           >
             <div className="p-6">
@@ -99,6 +177,7 @@ export default function ImageUploadModal({ isOpen, onClose, onInsert, isMobile =
               />
 
               <button
+                ref={uploadAreaRef}
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isUploading}
                 className="w-full mb-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"

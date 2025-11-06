@@ -1,6 +1,8 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
+import { useEffect, useRef } from 'react';
+import { animate } from 'animejs';
 
 interface ConfirmModalProps {
   isOpen: boolean;
@@ -23,6 +25,41 @@ export default function ConfirmModal({
   cancelText = 'Cancel',
   confirmColor = 'blue',
 }: ConfirmModalProps) {
+  const modalRef = useRef<HTMLDivElement>(null);
+  const backdropRef = useRef<HTMLDivElement>(null);
+
+  // Anime.js animations for modal
+  useEffect(() => {
+    if (isOpen) {
+      // Backdrop fade in
+      if (backdropRef.current) {
+        animate(
+          backdropRef.current,
+          {
+            opacity: [0, 1],
+            duration: 300,
+            easing: 'easeOutExpo',
+          }
+        );
+      }
+
+      // Modal entrance animation
+      if (modalRef.current) {
+        animate(
+          modalRef.current,
+          {
+            opacity: [0, 1],
+            scale: [0.8, 1],
+            translateY: [30, 0],
+            rotateZ: [-5, 0],
+            duration: 500,
+            easing: 'easeOutElastic(1, .6)',
+          }
+        );
+      }
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const confirmColors = {
@@ -38,6 +75,7 @@ export default function ConfirmModal({
         <>
           {/* Backdrop */}
           <motion.div
+            ref={backdropRef}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -49,11 +87,11 @@ export default function ConfirmModal({
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            exit={{ opacity: 0 }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
             className="fixed inset-0 z-50 flex items-center justify-center p-4"
           >
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6 border-2 border-gray-200 dark:border-gray-700">
+            <div ref={modalRef} className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6 border-2 border-gray-200 dark:border-gray-700">
               <div className="mb-6">
                 <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
                   {title}

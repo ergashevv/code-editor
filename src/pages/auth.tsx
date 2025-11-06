@@ -1,11 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { motion } from 'framer-motion';
+import { animate } from 'animejs';
 import { useI18n } from '../hooks/useI18n';
 import { register, login, isAuthenticated } from '../lib/api';
+import AnimatedTabs from '../components/AnimatedTabs';
+import AnimatedInput from '../components/AnimatedInput';
+import AnimatedButton from '../components/AnimatedButton';
 
 type AuthTab = 'login' | 'register';
 
@@ -28,6 +32,9 @@ export default function AuthPage() {
   const [username, setUsername] = useState('');
   const [phone, setPhone] = useState('+998');
   const [password, setPassword] = useState('');
+  const formRef = useRef<HTMLFormElement>(null);
+  const tabsRef = useRef<HTMLDivElement>(null);
+  const hasAnimatedRef = useRef(false);
 
   // Clear form function
   const clearForm = () => {
@@ -85,6 +92,8 @@ export default function AuthPage() {
   useEffect(() => {
     clearForm();
   }, [activeTab]);
+
+  // Anime.js animations for auth page - removed as AnimatedTabs and AnimatedInput handle their own animations
 
   // Get phone digits only (for validation)
   const getPhoneDigits = (phoneValue: string): string => {
@@ -195,30 +204,15 @@ export default function AuthPage() {
           </div>
 
           {/* Tabs */}
-          <div className="flex gap-2 mb-6 bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
-            <button
-              type="button"
-              onClick={() => setActiveTab('login')}
-              className={`flex-1 py-2 px-4 rounded-md font-medium transition-all ${
-                activeTab === 'login'
-                  ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-              }`}
-            >
-              Login
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('register')}
-              className={`flex-1 py-2 px-4 rounded-md font-medium transition-all ${
-                activeTab === 'register'
-                  ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-              }`}
-            >
-              Register
-            </button>
-          </div>
+          <AnimatedTabs
+            tabs={[
+              { id: 'login', label: 'Login', content: null },
+              { id: 'register', label: 'Register', content: null },
+            ]}
+            activeTab={activeTab}
+            onTabChange={(tabId) => setActiveTab(tabId as AuthTab)}
+            className="mb-6"
+          />
 
           {/* Error/Success Messages */}
           {error && (
@@ -242,32 +236,26 @@ export default function AuthPage() {
           )}
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Username
-              </label>
-              <input
-                type="text"
-                value={username}
-                onChange={(e) => {
-                  setUsername(e.target.value);
-                  setError('');
-                }}
-                required
-                minLength={3}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Enter username (min 3 characters)"
-                disabled={loading}
-              />
-            </div>
+          <form ref={formRef} onSubmit={handleSubmit} className="space-y-4">
+            <AnimatedInput
+              label="Username"
+              type="text"
+              value={username}
+              onChange={(e) => {
+                setUsername(e.target.value);
+                setError('');
+              }}
+              required
+              minLength={3}
+              placeholder="Enter username (min 3 characters)"
+              disabled={loading}
+              error={error && error.includes('username') ? error : undefined}
+            />
 
             {activeTab === 'register' && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Phone Number
-                </label>
-                <input
+                <AnimatedInput
+                  label="Phone Number"
                   type="tel"
                   value={phone}
                   onChange={(e) => {
@@ -276,15 +264,14 @@ export default function AuthPage() {
                     setError('');
                   }}
                   onBlur={(e) => {
-                    // Ensure format is correct on blur
                     const formatted = formatPhoneNumber(e.target.value);
                     setPhone(formatted);
                   }}
                   required
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="+998-93-078-80-47"
                   disabled={loading}
-                  maxLength={18} // +998-XX-XXX-XX-XX = 18 characters
+                  maxLength={18}
+                  error={error && error.includes('phone') ? error : undefined}
                 />
                 <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                   Format: +998-XX-XXX-XX-XX
@@ -292,32 +279,29 @@ export default function AuthPage() {
               </div>
             )}
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Password
-              </label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => {
-                  setPassword(e.target.value);
-                  setError('');
-                }}
-                required
-                minLength={4}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Enter password (min 4 characters)"
-                disabled={loading}
-              />
-            </div>
+            <AnimatedInput
+              label="Password"
+              type="password"
+              value={password}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                setError('');
+              }}
+              required
+              minLength={4}
+              placeholder="Enter password (min 4 characters)"
+              disabled={loading}
+              error={error && error.includes('password') ? error : undefined}
+            />
 
-            <button
+            <AnimatedButton
               type="submit"
               disabled={loading || !username.trim() || !password || (activeTab === 'register' && getPhoneDigits(phone).length !== 9)}
-              className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors shadow-lg"
+              variant="primary"
+              className="w-full py-3"
             >
               {loading ? 'Please wait...' : activeTab === 'login' ? 'Login' : 'Register'}
-            </button>
+            </AnimatedButton>
           </form>
         </motion.div>
       </div>

@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { animate } from 'animejs';
 import { useI18n, Language } from '../hooks/useI18n';
 import { useTheme } from '../hooks/useTheme';
 
@@ -17,6 +18,10 @@ export default function SettingsModal({ isOpen, onClose, fontSize, onFontSizeCha
   const { t, language, setLanguage } = useI18n();
   const { theme, toggleTheme } = useTheme();
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const modalRef = useRef<HTMLDivElement>(null);
+  const backdropRef = useRef<HTMLDivElement>(null);
+  const languageButtonsRef = useRef<HTMLDivElement>(null);
+  const fontSizeRef = useRef<HTMLDivElement>(null);
 
   const languages: { code: Language; label: string }[] = [
     { code: 'uz', label: 'Uzbek' },
@@ -24,11 +29,78 @@ export default function SettingsModal({ isOpen, onClose, fontSize, onFontSizeCha
     { code: 'en', label: 'English' },
   ];
 
+  // Anime.js animations for settings modal
+  useEffect(() => {
+    if (isOpen) {
+      // Backdrop fade in
+      if (backdropRef.current) {
+        animate(
+          backdropRef.current,
+          {
+            opacity: [0, 1],
+            duration: 300,
+            easing: 'easeOutExpo',
+          }
+        );
+      }
+
+      // Modal entrance with bounce
+      if (modalRef.current) {
+        animate(
+          modalRef.current,
+          {
+            opacity: [0, 1],
+            scale: [0.85, 1],
+            translateY: [30, 0],
+            rotateZ: [-3, 0],
+            duration: 600,
+            easing: 'easeOutElastic(1, .6)',
+          }
+        );
+      }
+
+      // Language buttons stagger
+      setTimeout(() => {
+        if (languageButtonsRef.current) {
+          const buttons = languageButtonsRef.current.querySelectorAll('button');
+          animate(
+            buttons,
+            {
+              opacity: [0, 1],
+              translateX: [-20, 0],
+              scale: [0.9, 1],
+              duration: 400,
+              delay: (el: any, i: number) => i * 100,
+              easing: 'easeOutExpo',
+            }
+          );
+        }
+      }, 200);
+
+      // Font size control animation
+      setTimeout(() => {
+        if (fontSizeRef.current) {
+          animate(
+            fontSizeRef.current,
+            {
+              opacity: [0, 1],
+              scale: [0.95, 1],
+              duration: 400,
+              delay: 400,
+              easing: 'easeOutExpo',
+            }
+          );
+        }
+      }, 400);
+    }
+  }, [isOpen]);
+
   return (
     <AnimatePresence>
       {isOpen && (
         <>
           <motion.div
+            ref={backdropRef}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -36,9 +108,10 @@ export default function SettingsModal({ isOpen, onClose, fontSize, onFontSizeCha
             onClick={onClose}
           />
           <motion.div
+            ref={modalRef}
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
+            exit={{ opacity: 0 }}
             className={`fixed ${isMobile ? 'inset-4' : 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2'} bg-white dark:bg-gray-800 rounded-xl shadow-xl z-50 ${isMobile ? 'w-auto' : 'w-80'} max-h-[90vh] overflow-y-auto border border-gray-100 dark:border-gray-700`}
           >
             <div className="p-5">
@@ -183,7 +256,7 @@ export default function SettingsModal({ isOpen, onClose, fontSize, onFontSizeCha
                 <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">
                   {t('language')}
                 </label>
-                <div className="flex items-center gap-1.5 bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+                <div ref={languageButtonsRef} className="flex items-center gap-1.5 bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
                   {languages.map((lang) => (
                     <button
                       key={lang.code}
@@ -205,7 +278,7 @@ export default function SettingsModal({ isOpen, onClose, fontSize, onFontSizeCha
                 <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">
                   {t('fontSize')}
                 </label>
-                <div className="flex items-center justify-center gap-3 bg-gray-100 dark:bg-gray-700 rounded-lg p-2">
+                <div ref={fontSizeRef} className="flex items-center justify-center gap-3 bg-gray-100 dark:bg-gray-700 rounded-lg p-2">
                   <button
                     onClick={() => onFontSizeChange(Math.max(10, fontSize - 1))}
                     className="w-9 h-9 flex items-center justify-center bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md transition-colors text-lg font-medium"

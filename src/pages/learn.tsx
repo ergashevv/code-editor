@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { motion } from 'framer-motion';
+import { animate, utils } from 'animejs';
 import { useI18n } from '../hooks/useI18n';
 import { isAuthenticated, ensureAuthenticated, getToken, getUser } from '../lib/api';
 import { getCachedLessons, setCachedLessons } from '../lib/lessonsCache';
@@ -12,6 +13,9 @@ import Navbar from '../components/Navbar';
 import LoadingSpinner from '../components/LoadingSpinner';
 import LazyLoadWrapper from '../components/LazyLoadWrapper';
 import { SkeletonCard } from '../components/SkeletonLoader';
+import AnimatedCard from '../components/AnimatedCard';
+import AnimatedBadge from '../components/AnimatedBadge';
+import AnimatedButton from '../components/AnimatedButton';
 
 interface Lesson {
   _id: string;
@@ -38,6 +42,8 @@ export default function LearnPage() {
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [originalLessons, setOriginalLessons] = useState<Lesson[]>([]); // Store original (non-localized) lessons
   const [loading, setLoading] = useState(true);
+  const headerRef = useRef<HTMLDivElement>(null);
+  const titleRef = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -161,8 +167,8 @@ export default function LearnPage() {
               ← {t('back') || 'Back'}
             </button>
           </div>
-          <div className="text-center mb-8 sm:mb-10">
-            <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-gray-900 dark:text-white mb-4">
+          <div ref={headerRef} className="text-center mb-8 sm:mb-10">
+            <h1 ref={titleRef} className="text-4xl sm:text-5xl md:text-6xl font-bold text-gray-900 dark:text-white mb-4">
               📚 {t('lessons')}
             </h1>
             <p className="text-lg sm:text-xl md:text-2xl text-gray-700 dark:text-gray-300 max-w-3xl mx-auto">
@@ -186,7 +192,7 @@ export default function LearnPage() {
               {/* Available Lessons - Katta va tushunarli */}
               {unlockedLessons.length > 0 && (
                 <div className="mb-10 sm:mb-12">
-                  <div className="flex items-center justify-center gap-3 mb-6 sm:mb-8">
+                  <div className="section-header-animate flex items-center justify-center gap-3 mb-6 sm:mb-8">
                     <div className="w-12 h-12 sm:w-16 sm:h-16 bg-green-500 rounded-full flex items-center justify-center text-2xl sm:text-3xl">
                       ✓
                     </div>
@@ -202,7 +208,7 @@ export default function LearnPage() {
                         animationType="slideUp"
                       >
                         <motion.div
-                          className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl p-6 sm:p-8 active:shadow-2xl transition-all cursor-pointer border-4 border-green-400 dark:border-green-500 active:border-green-500 dark:active:border-green-400 touch-manipulation"
+                          className="lesson-card-animate bg-white dark:bg-gray-800 rounded-3xl shadow-xl p-6 sm:p-8 active:shadow-2xl transition-all cursor-pointer border-4 border-green-400 dark:border-green-500 active:border-green-500 dark:active:border-green-400 touch-manipulation"
                           onClick={() => router.push(`/learn/${lesson.slug}`)}
                           whileHover={{ scale: 1.02, y: -4, boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' }}
                           whileTap={{ scale: 0.98 }}
@@ -218,24 +224,27 @@ export default function LearnPage() {
 
                         <div className="flex flex-wrap gap-2 mb-6">
                           {lesson.trains && lesson.trains.length > 0 && (
-                            <span className="px-4 py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-xl text-sm sm:text-base font-bold">
+                            <AnimatedBadge variant="info">
                               {lesson.trains.length} {t('practice')}
-                            </span>
+                            </AnimatedBadge>
                           )}
                           {lesson.homework && (
-                            <span className="px-4 py-2 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-xl text-sm sm:text-base font-bold">
+                            <AnimatedBadge variant="warning">
                               {t('homework')}
-                            </span>
+                            </AnimatedBadge>
                           )}
                         </div>
 
-                        <motion.button 
-                          className="w-full py-5 sm:py-5 bg-gradient-to-r from-green-500 to-emerald-500 active:from-green-600 active:to-emerald-600 text-white rounded-xl font-bold text-lg sm:text-xl transition-all shadow-lg touch-manipulation min-h-[56px]"
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
+                        <AnimatedButton
+                          variant="success"
+                          className="w-full py-5 sm:py-5 text-lg sm:text-xl min-h-[56px]"
+                          onClick={(e?: React.MouseEvent<HTMLButtonElement>) => {
+                            if (e) e.stopPropagation();
+                            router.push(`/learn/${lesson.slug}`);
+                          }}
                         >
                           {t('startLesson')} →
-                        </motion.button>
+                        </AnimatedButton>
                       </motion.div>
                       </LazyLoadWrapper>
                     ))}
@@ -246,7 +255,7 @@ export default function LearnPage() {
               {/* Locked Lessons - Katta va tushunarli */}
               {lockedLessons.length > 0 && (
                 <div>
-                  <div className="flex items-center justify-center gap-3 mb-6 sm:mb-8">
+                  <div className="section-header-animate flex items-center justify-center gap-3 mb-6 sm:mb-8">
                     <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gray-400 rounded-full flex items-center justify-center text-2xl sm:text-3xl">
                       🔒
                     </div>

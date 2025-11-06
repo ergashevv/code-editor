@@ -10,6 +10,7 @@ import { htmlTags, htmlAttributes } from '../lib/autocomplete';
 import { expandEmmet, shouldExpandEmmet } from '../lib/emmet';
 import { validateHTML, ValidationError } from '../lib/htmlValidator';
 import { isSelfClosingTag, findMatchingClosingTag, findOpeningTag, findClosingTagByPosition, findMatchingClosingTagSimple } from '../lib/htmlHelpers';
+import { beautifyHTML, beautifyCSS, beautifyJS } from '../lib/beautify';
 
 const MonacoEditor = dynamic(() => import('@monaco-editor/react'), {
   ssr: false,
@@ -31,6 +32,9 @@ export default function Editor({ language: editorLanguage, value, onChange, labe
   const editorRef = useRef<any>(null);
   const monacoRef = useRef<Monaco | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const [currentFontSize, setCurrentFontSize] = useState(fontSize);
+  const [showErrors, setShowErrors] = useState(true);
+  const [errors, setErrors] = useState<ValidationError[]>([]);
 
   const monacoLanguage = editorLanguage === 'javascript' ? 'javascript' : editorLanguage;
 
@@ -91,8 +95,9 @@ export default function Editor({ language: editorLanguage, value, onChange, labe
     // Validate HTML and show markers
     const updateMarkers = () => {
       if (editorLanguage === 'html' && editor.getModel()) {
-        const errors = validateHTML(value, i18nLanguage);
-        const markers = errors.map((err) => ({
+        const validationErrors = validateHTML(value, i18nLanguage);
+        setErrors(validationErrors);
+        const markers = validationErrors.map((err) => ({
           startLineNumber: err.line,
           endLineNumber: err.line,
           startColumn: err.column,
@@ -752,6 +757,39 @@ export default function Editor({ language: editorLanguage, value, onChange, labe
     };
   }, [isMobile]);
 
+  const handleBeautify = () => {
+    let beautified = '';
+    if (editorLanguage === 'html') {
+      beautified = beautifyHTML(value);
+    } else if (editorLanguage === 'css') {
+      beautified = beautifyCSS(value);
+    } else if (editorLanguage === 'javascript') {
+      beautified = beautifyJS(value);
+    }
+    onChange(beautified);
+  };
+
+  const handleFontSizeChange = (delta: number) => {
+    const newSize = Math.max(8, Math.min(32, currentFontSize + delta));
+    setCurrentFontSize(newSize);
+    if (editorRef.current) {
+      editorRef.current.updateOptions({ fontSize: newSize });
+    }
+  };
+
+  const getErrorSuggestions = (error: ValidationError): string => {
+    if (error.message.includes('missing')) {
+      return `Add the missing ${error.message.match(/missing\s+(\w+)/)?.[1] || 'element'}`;
+    }
+    if (error.message.includes('unclosed')) {
+      return `Close the ${error.message.match(/unclosed\s+(\w+)/)?.[1] || 'tag'}`;
+    }
+    if (error.message.includes('invalid')) {
+      return `Fix the invalid ${error.message.match(/invalid\s+(\w+)/)?.[1] || 'syntax'}`;
+    }
+    return 'Check the syntax and fix the error';
+  };
+
   return (
     <motion.div
       ref={containerRef}
@@ -760,8 +798,52 @@ export default function Editor({ language: editorLanguage, value, onChange, labe
       className="flex flex-col h-full w-full bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden"
       style={{ minHeight: '300px', height: '100%', flex: '1 1 auto', display: 'flex', flexDirection: 'column' }}
     >
-      <div className={`${isMobile ? 'px-1.5 py-0.5' : 'px-3 py-1.5'} bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shrink-0 flex-shrink-0`}>
+      <div className={`${isMobile ? 'px-1.5 py-0.5' : 'px-3 py-1.5'} bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shrink-0 flex-shrink-0 flex items-center justify-between`}>
         <h3 className={`${isMobile ? 'text-[10px]' : 'text-xs'} font-medium text-gray-700 dark:text-gray-200`}>{label}</h3>
+        <div className="flex items-center gap-2">
+          {/* Font size controls */}
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => handleFontSizeChange(-1)}
+              className="px-1.5 py-0.5 text-xs bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded text-gray-700 dark:text-gray-300"
+              title="Decrease font size"
+            >
+              A−
+            </button>
+            <span className="text-xs text-gray-600 dark:text-gray-400 min-w-[2ch] text-center">
+              {currentFontSize}
+            </span>
+            <button
+              onClick={() => handleFontSizeChange(1)}
+              className="px-1.5 py-0.5 text-xs bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded text-gray-700 dark:text-gray-300"
+              title="Increase font size"
+            >
+              A+
+            </button>
+          </div>
+          {/* Beautify button */}
+          <button
+            onClick={handleBeautify}
+            className="px-2 py-0.5 text-xs bg-blue-500 hover:bg-blue-600 text-white rounded"
+            title="Beautify code"
+          >
+            ✨
+          </button>
+          {/* Error toggle */}
+          {editorLanguage === 'html' && errors.length > 0 && (
+            <button
+              onClick={() => setShowErrors(!showErrors)}
+              className={`px-2 py-0.5 text-xs rounded ${
+                showErrors
+                  ? 'bg-red-500 hover:bg-red-600 text-white'
+                  : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300'
+              }`}
+              title={`${showErrors ? 'Hide' : 'Show'} errors`}
+            >
+              ⚠️ {errors.length}
+            </button>
+          )}
+        </div>
       </div>
       <div className="flex-1 min-h-0 w-full bg-white dark:bg-gray-900 overflow-hidden" style={{ userSelect: 'text', WebkitUserSelect: 'text', minHeight: '250px', height: '100%', flex: '1 1 auto', position: 'relative', display: 'flex', flexDirection: 'column' }}>
         <div style={{ flex: '1 1 auto', minHeight: 0, height: '100%', width: '100%', position: 'relative' }}>
@@ -773,7 +855,7 @@ export default function Editor({ language: editorLanguage, value, onChange, labe
           theme={theme === 'dark' ? 'vs-dark' : 'vs'}
           onMount={handleEditorDidMount}
           options={{
-            fontSize: fontSize || (isMobile ? 12 : 13),
+            fontSize: currentFontSize || fontSize || (isMobile ? 12 : 13),
             minimap: { enabled: false },
             wordWrap: 'on',
             lineNumbers: isMobile ? 'off' : 'on',
@@ -842,6 +924,27 @@ export default function Editor({ language: editorLanguage, value, onChange, labe
         />
         </div>
       </div>
+      {/* Error panel */}
+      {showErrors && errors.length > 0 && editorLanguage === 'html' && (
+        <div className="border-t border-gray-200 dark:border-gray-700 bg-red-50 dark:bg-red-900/10 max-h-32 overflow-y-auto">
+          <div className="p-2 space-y-1">
+            {errors.map((error, index) => (
+              <div
+                key={index}
+                className="text-xs p-2 bg-red-100 dark:bg-red-900/20 rounded border-l-2 border-red-500"
+              >
+                <div className="font-semibold text-red-800 dark:text-red-300">
+                  Line {error.line}, Column {error.column}
+                </div>
+                <div className="text-red-700 dark:text-red-400">{error.message}</div>
+                <div className="text-red-600 dark:text-red-500 mt-1 italic">
+                  💡 {getErrorSuggestions(error)}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </motion.div>
   );
 }

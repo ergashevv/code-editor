@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { motion } from 'framer-motion';
+import { animate } from 'animejs';
 import { useI18n } from '../hooks/useI18n';
 import { logout, getUser } from '../lib/api';
 import LanguageToggle from './LanguageToggle';
@@ -24,6 +25,7 @@ export default function Navbar({
   const [user, setUser] = useState<{ id: string; username: string; phone: string } | null>(null);
   const [mounted, setMounted] = useState(false);
   const [isMobileDevice, setIsMobileDevice] = useState(false);
+  const navRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -38,8 +40,59 @@ export default function Navbar({
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
+  // Anime.js animations for navbar
+  useEffect(() => {
+    if (!mounted) return;
+
+    // Navbar slide-in animation
+    if (navRef.current) {
+      animate(
+        navRef.current,
+        {
+          translateY: [-20, 0],
+          opacity: [0, 1],
+          duration: 600,
+          easing: 'easeOutExpo',
+        }
+      );
+    }
+
+    // Nav buttons hover animations
+    setTimeout(() => {
+      const navButtons = navRef.current?.querySelectorAll('button');
+      if (navButtons) {
+        navButtons.forEach((button) => {
+          button.addEventListener('mouseenter', () => {
+            animate(
+              button,
+              {
+                scale: [1, 1.05],
+                translateY: [0, -2],
+                duration: 200,
+                easing: 'easeOutExpo',
+              }
+            );
+          });
+          
+          button.addEventListener('mouseleave', () => {
+            animate(
+              button,
+              {
+                scale: [1.05, 1],
+                translateY: [-2, 0],
+                duration: 200,
+                easing: 'easeOutExpo',
+              }
+            );
+          });
+        });
+      }
+    }, 300);
+  }, [mounted]);
+
   return (
     <motion.nav
+      ref={navRef}
       initial={{ y: -20, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       className={`bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-3 sm:px-4 md:px-6 py-2.5 sm:py-3 shrink-0`}
