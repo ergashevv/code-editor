@@ -1,18 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { animate } from 'animejs';
 import AnimatedButton from '../components/AnimatedButton';
 
-export async function getServerSideProps() {
-  return {
-    props: {},
-  };
-}
-
 export default function NotFoundPage() {
   const [mounted, setMounted] = useState(false);
-  const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
   const numberRef = useRef<HTMLDivElement>(null);
   const textRef = useRef<HTMLDivElement>(null);
@@ -110,8 +102,8 @@ export default function NotFoundPage() {
             <AnimatedButton
               variant="primary"
               onClick={() => {
-                if (mounted && typeof window !== 'undefined') {
-                  router.push('/home');
+                if (typeof window !== 'undefined') {
+                  window.location.href = '/home';
                 }
               }}
               className="px-8 py-3"

@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 import { useI18n } from '../hooks/useI18n';
 import { useTheme } from '../hooks/useTheme';
 import type { Monaco } from '@monaco-editor/react';
-import { htmlTags, htmlAttributes } from '../lib/autocomplete';
+import { htmlTags, htmlAttributes, tagTemplates, tagAttributes } from '../lib/autocomplete';
 import { expandEmmet, shouldExpandEmmet } from '../lib/emmet';
 import { validateHTML, ValidationError } from '../lib/htmlValidator';
 import { isSelfClosingTag, findMatchingClosingTag, findOpeningTag, findClosingTagByPosition, findMatchingClosingTagSimple } from '../lib/htmlHelpers';
@@ -449,11 +449,30 @@ export default function Editor({ language: editorLanguage, value, onChange, labe
             const prefix = tagMatch[1].toLowerCase();
             htmlTags.forEach((tag) => {
               if (tag.startsWith(prefix) || prefix === '') {
+                // Check if we have a template for this tag
+                const template = tagTemplates[tag];
+                const isSelfClosing = isSelfClosingTag(tag);
+                
+                let insertText: string;
+                if (template) {
+                  // Remove < and > from template since we're inserting after <
+                  insertText = template.replace(/^</, '').replace(/>$/, '');
+                } else if (isSelfClosing) {
+                  insertText = `${tag} />`;
+                } else {
+                  insertText = `${tag}>$0</${tag}>`;
+                }
+                
                 suggestions.push({
                   label: tag,
                   kind: monaco.languages.CompletionItemKind.Property,
-                  insertText: tag,
-                  documentation: `HTML tag: <${tag}>`,
+                  insertText: insertText,
+                  insertTextRules: template || !isSelfClosing 
+                    ? monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet 
+                    : undefined,
+                  documentation: template 
+                    ? `HTML tag: ${template}` 
+                    : `HTML tag: <${tag}>${isSelfClosing ? ' (self-closing)' : ''}`,
                   range: {
                     startLineNumber: position.lineNumber,
                     endLineNumber: position.lineNumber,
@@ -467,24 +486,34 @@ export default function Editor({ language: editorLanguage, value, onChange, labe
           }
 
           // Check if we're typing an attribute (after space in tag)
-          const attrMatch = textUntilPosition.match(/<\w+[^>]*\s+(\w*)$/);
+          const attrMatch = textUntilPosition.match(/<(\w+)[^>]*\s+(\w*)$/);
           if (attrMatch && suggestions.length === 0) {
-            const prefix = attrMatch[1].toLowerCase();
-            htmlAttributes.forEach((attr) => {
+            const tagName = attrMatch[1].toLowerCase();
+            const prefix = attrMatch[2].toLowerCase();
+            
+            // Get tag-specific attributes or use general attributes
+            const availableAttrs = tagAttributes[tagName] || htmlAttributes;
+            
+            availableAttrs.forEach((attr) => {
               if (attr.startsWith(prefix) || prefix === '') {
-                suggestions.push({
-                  label: attr,
-                  kind: monaco.languages.CompletionItemKind.Field,
-                  insertText: `${attr}="$1"`,
-                  insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-                  documentation: `HTML attribute: ${attr}`,
-                  range: {
-                    startLineNumber: position.lineNumber,
-                    endLineNumber: position.lineNumber,
-                    startColumn: prefix.length > 0 ? position.column - prefix.length : position.column,
-                    endColumn: position.column,
-                  },
-                });
+                // Check if attribute already exists in the tag
+                const tagContent = textUntilPosition.match(/<[^>]*$/)?.[0] || '';
+                if (!tagContent.includes(`${attr}=`) && !tagContent.includes(`${attr} `)) {
+                  suggestions.push({
+                    label: attr,
+                    kind: monaco.languages.CompletionItemKind.Field,
+                    insertText: `${attr}="$1"`,
+                    insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                    documentation: `HTML attribute: ${attr}${tagAttributes[tagName]?.includes(attr) ? ` (for <${tagName}>)` : ''}`,
+                    range: {
+                      startLineNumber: position.lineNumber,
+                      endLineNumber: position.lineNumber,
+                      startColumn: prefix.length > 0 ? position.column - prefix.length : position.column,
+                      endColumn: position.column,
+                    },
+                    sortText: prefix === '' ? `0${attr}` : `1${attr}`,
+                  });
+                }
               }
             });
           }
@@ -509,12 +538,26 @@ export default function Editor({ language: editorLanguage, value, onChange, labe
                 htmlTags.forEach((tag) => {
                   if (tag.startsWith(currentWord) || currentWord === tag) {
                     const isSelfClosing = isSelfClosingTag(tag);
+                    const template = tagTemplates[tag];
+                    
+                    let insertText: string;
+                    if (template) {
+                      // Include < and > since we're replacing the whole word
+                      insertText = template;
+                    } else if (isSelfClosing) {
+                      insertText = `<${tag} />`;
+                    } else {
+                      insertText = `<${tag}>$0</${tag}>`;
+                    }
+                    
                     suggestions.push({
                       label: tag,
                       kind: monaco.languages.CompletionItemKind.Property,
-                      insertText: isSelfClosing ? `<${tag}>` : `<${tag}>$0</${tag}>`,
+                      insertText: insertText,
                       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-                      documentation: `HTML tag: <${tag}>${isSelfClosing ? ' (self-closing)' : ''}`,
+                      documentation: template 
+                        ? `HTML tag: ${template}` 
+                        : `HTML tag: <${tag}>${isSelfClosing ? ' (self-closing)' : ''}`,
                       range: {
                         startLineNumber: position.lineNumber,
                         endLineNumber: position.lineNumber,
