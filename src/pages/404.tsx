@@ -1,4 +1,5 @@
 import Head from 'next/head';
+import Link from 'next/link';
 
 export default function NotFoundPage() {
   return (
@@ -20,12 +21,12 @@ export default function NotFoundPage() {
             </p>
           </div>
           <div>
-            <a
+            <Link
               href="/home"
               className="inline-block px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
             >
               Go to Home
-            </a>
+            </Link>
           </div>
         </div>
       </div>
@@ -44,7 +45,7 @@ export default function NotFoundPage() {
                 const container = document.querySelector('.min-h-screen');
                 const number = container?.querySelector('.text-9xl');
                 const text = container?.querySelector('.mb-8');
-                const button = container?.querySelector('a');
+                const button = container?.querySelector('a, [href="/home"]');
                 
                 if (container) {
                   anime({
