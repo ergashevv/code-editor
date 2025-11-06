@@ -30,6 +30,7 @@ export default function Editor({ language: editorLanguage, value, onChange, labe
   const { theme } = useTheme();
   const editorRef = useRef<any>(null);
   const monacoRef = useRef<Monaco | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const monacoLanguage = editorLanguage === 'javascript' ? 'javascript' : editorLanguage;
 
@@ -501,13 +502,14 @@ export default function Editor({ language: editorLanguage, value, onChange, labe
               // Check if this looks like a tag name (letters and numbers, starting with letter)
               if (/^[a-z][a-z0-9]*$/i.test(currentWord)) {
                 htmlTags.forEach((tag) => {
-                  if (tag.startsWith(currentWord)) {
+                  if (tag.startsWith(currentWord) || currentWord === tag) {
+                    const isSelfClosing = isSelfClosingTag(tag);
                     suggestions.push({
                       label: tag,
                       kind: monaco.languages.CompletionItemKind.Property,
-                      insertText: `<${tag}>$0</${tag}>`,
+                      insertText: isSelfClosing ? `<${tag}>` : `<${tag}>$0</${tag}>`,
                       insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-                      documentation: `HTML tag: <${tag}>`,
+                      documentation: `HTML tag: <${tag}>${isSelfClosing ? ' (self-closing)' : ''}`,
                       range: {
                         startLineNumber: position.lineNumber,
                         endLineNumber: position.lineNumber,
@@ -609,6 +611,92 @@ export default function Editor({ language: editorLanguage, value, onChange, labe
     window.addEventListener('orientationchange', handleResize);
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
+    // Handle mobile keyboard opening/closing using Visual Viewport API
+    let viewportResizeHandler: (() => void) | null = null;
+    if (isMobile && typeof window !== 'undefined' && window.visualViewport) {
+      viewportResizeHandler = () => {
+        if (!editorRef.current || !containerRef.current) return;
+        
+        const viewport = window.visualViewport;
+        if (!viewport) return;
+
+        // When keyboard opens, viewport height decreases
+        // Scroll the editor container into view
+        setTimeout(() => {
+          try {
+            const container = containerRef.current;
+            if (container) {
+              // Get the editor's DOM node
+              const editorDomNode = editorRef.current.getDomNode();
+              if (editorDomNode) {
+                // Get the active line position
+                const position = editorRef.current.getPosition();
+                if (position) {
+                  // Scroll the editor to show the active line
+                  editorRef.current.revealLineInCenter(position.lineNumber);
+                  
+                  // Also ensure the container is visible
+                  const containerRect = container.getBoundingClientRect();
+                  const viewportHeight = viewport.height;
+                  const containerBottom = containerRect.bottom;
+                  
+                  // If container is below visible viewport, scroll it into view
+                  if (containerBottom > viewportHeight) {
+                    container.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                  }
+                }
+              }
+            }
+            
+            // Update editor layout
+            editorRef.current.layout();
+          } catch (error) {
+            console.error('Error handling viewport resize:', error);
+          }
+        }, 100);
+      };
+
+      window.visualViewport.addEventListener('resize', viewportResizeHandler);
+      window.visualViewport.addEventListener('scroll', viewportResizeHandler);
+    }
+
+    // Handle editor focus to scroll into view on mobile
+    let editorFocusHandler: (() => void) | null = null;
+    let editorTouchHandler: (() => void) | null = null;
+    if (isMobile) {
+      editorFocusHandler = () => {
+        setTimeout(() => {
+          if (editorRef.current && containerRef.current) {
+            const container = containerRef.current;
+            const containerRect = container.getBoundingClientRect();
+            
+            // Check if we have visual viewport
+            if (typeof window !== 'undefined' && window.visualViewport) {
+              const viewport = window.visualViewport;
+              const viewportHeight = viewport.height;
+              const containerBottom = containerRect.bottom;
+              
+              // If container is below visible viewport, scroll it into view
+              if (containerBottom > viewportHeight) {
+                container.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+              }
+            } else {
+              // Fallback: scroll into view
+              container.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+          }
+        }, 300); // Delay to allow keyboard to open
+      };
+
+      editorTouchHandler = editorFocusHandler; // Same handler for touch
+
+      const editorDomNode = editorRef.current?.getDomNode();
+      if (editorDomNode) {
+        editorDomNode.addEventListener('focus', editorFocusHandler, true);
+        editorDomNode.addEventListener('touchstart', editorTouchHandler, true);
+      }
+    }
+
     // Force layout after component mounts - multiple attempts for mobile
     const timers = [
       setTimeout(() => {
@@ -644,12 +732,29 @@ export default function Editor({ language: editorLanguage, value, onChange, labe
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('orientationchange', handleResize);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      
+      if (viewportResizeHandler && typeof window !== 'undefined' && window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', viewportResizeHandler);
+        window.visualViewport.removeEventListener('scroll', viewportResizeHandler);
+      }
+      
+      if (editorFocusHandler && editorRef.current) {
+        const editorDomNode = editorRef.current.getDomNode();
+        if (editorDomNode) {
+          editorDomNode.removeEventListener('focus', editorFocusHandler, true);
+          if (editorTouchHandler) {
+            editorDomNode.removeEventListener('touchstart', editorTouchHandler, true);
+          }
+        }
+      }
+      
       timers.forEach(timer => clearTimeout(timer));
     };
-  }, []);
+  }, [isMobile]);
 
   return (
     <motion.div
+      ref={containerRef}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       className="flex flex-col h-full w-full bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden"
@@ -693,6 +798,10 @@ export default function Editor({ language: editorLanguage, value, onChange, labe
             wordBasedSuggestions: 'matchingDocuments',
             suggestSelection: 'first',
             tabCompletion: 'on',
+            // Auto-closing settings for HTML tags
+            autoClosingBrackets: 'always',
+            autoClosingQuotes: 'always',
+            autoSurround: 'languageDefined',
             scrollbar: {
               vertical: 'auto',
               horizontal: 'auto',

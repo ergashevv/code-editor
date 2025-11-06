@@ -1,4 +1,4 @@
-# Google Search Console Verification - Qo'llanma
+w# Google Search Console Verification - Qo'llanma
 
 ## ✅ Meta Tag Verification (Qo'shildi)
 
