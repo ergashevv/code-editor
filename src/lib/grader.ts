@@ -44,7 +44,27 @@ export function evaluateHtmlCss(
   
   // Fix common tag closing errors like <h1>/h1 or <div>/div
   // Pattern: <tag>/tag should become <tag></tag>
+  // Also handle cases where closing tag is on a new line: <tag>\n/tag
   fixedHtml = fixedHtml.replace(/<(\w+)([^>]*)>\/\1>/gi, '<$1$2></$1>');
+  // Fix cases where closing tag is on separate line: <tag>...\n/tag or <tag>...\n/<tag>
+  fixedHtml = fixedHtml.replace(/<(\w+)([^>]*)>[\s]*\n[\s]*\/\1>/gi, '<$1$2></$1>');
+  fixedHtml = fixedHtml.replace(/<(\w+)([^>]*)>[\s]*\n[\s]*\/<\1>/gi, '<$1$2></$1>');
+  // Fix standalone closing errors: /tag or /<tag> (without opening tag on same line)
+  fixedHtml = fixedHtml.replace(/\n[\s]*\/(\w+)[\s]*\n/gi, (match, tagName) => {
+    // Only fix if it's a valid HTML tag (non-self-closing)
+    const nonSelfClosingTags = ['div', 'span', 'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'a', 'button', 'form', 'label', 'ul', 'ol', 'li', 'table', 'tr', 'td', 'th', 'thead', 'tbody', 'header', 'footer', 'nav', 'section', 'article', 'aside', 'strong', 'em', 'code', 'pre', 'blockquote', 'html', 'head', 'body', 'title', 'style', 'script'];
+    if (nonSelfClosingTags.includes(tagName.toLowerCase())) {
+      return `\n</${tagName}>\n`;
+    }
+    return match;
+  });
+  fixedHtml = fixedHtml.replace(/\n[\s]*\/<(\w+)>[\s]*\n/gi, (match, tagName) => {
+    const nonSelfClosingTags = ['div', 'span', 'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'a', 'button', 'form', 'label', 'ul', 'ol', 'li', 'table', 'tr', 'td', 'th', 'thead', 'tbody', 'header', 'footer', 'nav', 'section', 'article', 'aside', 'strong', 'em', 'code', 'pre', 'blockquote', 'html', 'head', 'body', 'title', 'style', 'script'];
+    if (nonSelfClosingTags.includes(tagName.toLowerCase())) {
+      return `\n</${tagName}>\n`;
+    }
+    return match;
+  });
   
   // Fix self-closing tags that should be closed properly
   // Pattern: <tag/> should become <tag></tag> for non-self-closing tags
