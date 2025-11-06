@@ -1,17 +1,26 @@
-'use client';
-
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { animate } from 'animejs';
 import AnimatedButton from '../components/AnimatedButton';
 
+export async function getServerSideProps() {
+  return {
+    props: {},
+  };
+}
+
 export default function NotFoundPage() {
+  const [mounted, setMounted] = useState(false);
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
   const numberRef = useRef<HTMLDivElement>(null);
   const textRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (containerRef.current) {
@@ -100,7 +109,11 @@ export default function NotFoundPage() {
           <div ref={buttonRef} style={{ opacity: 0 }}>
             <AnimatedButton
               variant="primary"
-              onClick={() => router.push('/home')}
+              onClick={() => {
+                if (mounted && typeof window !== 'undefined') {
+                  router.push('/home');
+                }
+              }}
               className="px-8 py-3"
             >
               Go to Home
