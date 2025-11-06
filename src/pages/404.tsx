@@ -1,7 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import Head from 'next/head';
+import dynamic from 'next/dynamic';
 import { animate } from 'animejs';
-import AnimatedButton from '../components/AnimatedButton';
+
+const AnimatedButton = dynamic(() => import('../components/AnimatedButton'), {
+  ssr: false,
+});
 
 export default function NotFoundPage() {
   const [mounted, setMounted] = useState(false);
@@ -15,6 +19,8 @@ export default function NotFoundPage() {
   }, []);
 
   useEffect(() => {
+    if (!mounted || typeof window === 'undefined') return;
+
     if (containerRef.current) {
       // Container fade in
       animate(
@@ -70,7 +76,7 @@ export default function NotFoundPage() {
         );
       }, 600);
     }
-  }, []);
+  }, [mounted]);
 
   return (
     <>
