@@ -1,82 +1,75 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import Head from 'next/head';
-import dynamic from 'next/dynamic';
-import { animate } from 'animejs';
-
-const AnimatedButton = dynamic(() => import('../components/AnimatedButton'), {
-  ssr: false,
-});
 
 export default function NotFoundPage() {
-  const [mounted, setMounted] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const numberRef = useRef<HTMLDivElement>(null);
   const textRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setMounted(true);
+    if (typeof window === 'undefined') return;
+    
+    // Import animate dynamically only on client side
+    import('animejs').then(({ animate }) => {
+
+      if (containerRef.current) {
+        // Container fade in
+        animate(
+          containerRef.current,
+          {
+            opacity: [0, 1],
+            duration: 500,
+            easing: 'easeOutExpo',
+          }
+        );
+      }
+
+      // 404 number animation
+      if (numberRef.current) {
+        animate(
+          numberRef.current,
+          {
+            scale: [0, 1.2, 1],
+            rotateZ: [0, 360],
+            opacity: [0, 1],
+            duration: 1000,
+            easing: 'easeOutElastic(1, .6)',
+          }
+        );
+      }
+
+      // Text animation
+      if (textRef.current) {
+        setTimeout(() => {
+          animate(
+            textRef.current!,
+            {
+              opacity: [0, 1],
+              translateY: [20, 0],
+              duration: 600,
+              easing: 'easeOutExpo',
+            }
+          );
+        }, 300);
+      }
+
+      // Button animation
+      if (buttonRef.current) {
+        setTimeout(() => {
+          animate(
+            buttonRef.current!,
+            {
+              opacity: [0, 1],
+              translateY: [20, 0],
+              duration: 600,
+              easing: 'easeOutExpo',
+            }
+          );
+        }, 600);
+      }
+    });
   }, []);
-
-  useEffect(() => {
-    if (!mounted || typeof window === 'undefined') return;
-
-    if (containerRef.current) {
-      // Container fade in
-      animate(
-        containerRef.current,
-        {
-          opacity: [0, 1],
-          duration: 500,
-          easing: 'easeOutExpo',
-        }
-      );
-    }
-
-    // 404 number animation
-    if (numberRef.current) {
-      animate(
-        numberRef.current,
-        {
-          scale: [0, 1.2, 1],
-          rotateZ: [0, 360],
-          opacity: [0, 1],
-          duration: 1000,
-          easing: 'easeOutElastic(1, .6)',
-        }
-      );
-    }
-
-    // Text animation
-    if (textRef.current) {
-      setTimeout(() => {
-        animate(
-          textRef.current!,
-          {
-            opacity: [0, 1],
-            translateY: [20, 0],
-            duration: 600,
-            easing: 'easeOutExpo',
-          }
-        );
-      }, 300);
-    }
-
-    // Button animation
-    if (buttonRef.current) {
-      setTimeout(() => {
-        animate(
-          buttonRef.current!,
-          {
-            opacity: [0, 1],
-            translateY: [20, 0],
-            duration: 600,
-            easing: 'easeOutExpo',
-          }
-        );
-      }, 600);
-    }
-  }, [mounted]);
 
   return (
     <>
@@ -105,17 +98,16 @@ export default function NotFoundPage() {
             </p>
           </div>
           <div ref={buttonRef} style={{ opacity: 0 }}>
-            <AnimatedButton
-              variant="primary"
+            <button
+              className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
               onClick={() => {
                 if (typeof window !== 'undefined') {
                   window.location.href = '/home';
                 }
               }}
-              className="px-8 py-3"
             >
               Go to Home
-            </AnimatedButton>
+            </button>
           </div>
         </div>
       </div>
