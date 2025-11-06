@@ -1,7 +1,15 @@
+'use client';
+
+import { useEffect } from 'react';
 import Head from 'next/head';
-import Link from 'next/link';
+
+// Make this page dynamic to avoid NextRouter errors during static generation
+export const dynamic = 'force-dynamic';
 
 export default function NotFoundPage() {
+  useEffect(() => {
+    // Client-side only code
+  }, []);
   return (
     <>
       <Head>
@@ -21,12 +29,17 @@ export default function NotFoundPage() {
             </p>
           </div>
           <div>
-            <Link
-              href="/home"
-              className="inline-block px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+            <button
+              type="button"
+              onClick={() => {
+                if (typeof window !== 'undefined') {
+                  window.location.href = '/home';
+                }
+              }}
+              className="inline-block px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors cursor-pointer"
             >
               Go to Home
-            </Link>
+            </button>
           </div>
         </div>
       </div>
@@ -36,62 +49,64 @@ export default function NotFoundPage() {
             (function() {
               if (typeof window === 'undefined') return;
               
-              // Load animejs dynamically
-              const script = document.createElement('script');
-              script.src = 'https://cdn.jsdelivr.net/npm/animejs@3.2.1/lib/anime.min.js';
-              script.onload = function() {
-                if (typeof anime === 'undefined') return;
-                
-                const container = document.querySelector('.min-h-screen');
-                const number = container?.querySelector('.text-9xl');
-                const text = container?.querySelector('.mb-8');
-                const button = container?.querySelector('a, [href="/home"]');
-                
-                if (container) {
-                  anime({
-                    targets: container,
-                    opacity: [0, 1],
-                    duration: 500,
-                    easing: 'easeOutExpo',
-                  });
-                }
-                
-                if (number) {
-                  anime({
-                    targets: number,
-                    scale: [0, 1.2, 1],
-                    rotateZ: [0, 360],
-                    opacity: [0, 1],
-                    duration: 1000,
-                    easing: 'easeOutElastic(1, .6)',
-                  });
-                }
-                
-                if (text) {
-                  setTimeout(function() {
+              // Load animejs dynamically after page load
+              window.addEventListener('load', function() {
+                const script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/npm/animejs@3.2.1/lib/anime.min.js';
+                script.onload = function() {
+                  if (typeof anime === 'undefined') return;
+                  
+                  const container = document.querySelector('.min-h-screen');
+                  const number = container?.querySelector('.text-9xl');
+                  const text = container?.querySelector('.mb-8');
+                  const button = container?.querySelector('button');
+                  
+                  if (container) {
                     anime({
-                      targets: text,
+                      targets: container,
                       opacity: [0, 1],
-                      translateY: [20, 0],
-                      duration: 600,
+                      duration: 500,
                       easing: 'easeOutExpo',
                     });
-                  }, 300);
-                }
-                
-                if (button) {
-                  setTimeout(function() {
+                  }
+                  
+                  if (number) {
                     anime({
-                      targets: button,
+                      targets: number,
+                      scale: [0, 1.2, 1],
+                      rotateZ: [0, 360],
                       opacity: [0, 1],
-                      translateY: [20, 0],
-                      duration: 600,
-                      easing: 'easeOutExpo',
+                      duration: 1000,
+                      easing: 'easeOutElastic(1, .6)',
                     });
-                  }, 600);
-                }
-              };
-              document.head.appendChild(script);
+                  }
+                  
+                  if (text) {
+                    setTimeout(function() {
+                      anime({
+                        targets: text,
+                        opacity: [0, 1],
+                        translateY: [20, 0],
+                        duration: 600,
+                        easing: 'easeOutExpo',
+                      });
+                    }, 300);
+                  }
+                  
+                  if (button) {
+                    setTimeout(function() {
+                      anime({
+                        targets: button,
+                        opacity: [0, 1],
+                        translateY: [20, 0],
+                        duration: 600,
+                        easing: 'easeOutExpo',
+                      });
+                    }, 600);
+                  }
+                };
+                document.head.appendChild(script);
+              });
             })();
           `,
         }}
